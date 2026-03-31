@@ -1,5 +1,5 @@
 body { 
-    font-family:'Times New Roman', Times, serif;
+    font-family:'Verdana', Times, serif;
     background-color: #ffffff;
 }
 
@@ -59,7 +59,7 @@ body {
 }
 
 .btn-light {
-    background-color:#A3D2CA;
+    background-color:#92bbf9;
     border-radius : 5px;
     border-color:aliceblue;
     text-align: center;
