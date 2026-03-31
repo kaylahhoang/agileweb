@@ -10,32 +10,47 @@
 </head>
 <body>
 
-    <header class = ".app-header">
-        <h1> Tutoring System </h1>
+    <header class="app-header d-flex align-items-center">
+
+        <button id="toggleSidebar" class="btn btn-light">☰</button>
+
+        <h1 class = "header-title"> TUTOR BOOKING SYSTEM </h1>
+
+        <div class = "header-right">
+            <a href="#" class="btn btn-light">Logout</a>
+        </div>
     </header>
 
 <div class="d-flex">
 
-    <div class="sidebar text-balck p-3">
-        <h4 class="text-center"> Navigation </h4>
+    <div class="sidebar">
+        <h4 class="app-header"> Navigation </h4>
 
         <ul class="nav flex-column mt-4">
             <li class="nav-item">
-                <a class="nav-link text-balck" href="youtube.com">Dashboard</a>
+                <a class="nav-link text-white" href="Insert link">Dashboard</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-black" href="youtube.com">Bookings</a>
+                <a class="nav-link text-white" href="Insert Link">Bookings</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-black" href="youtube.com">Tutors</a>
+                <a class="nav-link text-white" href="Insert Link">Tutors</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-black" href="youtube.com">Profile</a>
+                <a class="nav-link text-white" href="Insert Link">Profile</a>
             </li>
         </ul>
     </div>
+</div>  
 
 
 
 </body>
 </html>
+
+<script>
+    document.getElementById('toggleSidebar').addEventListener('click', function() {
+        document.querySelector('.sidebar').classList.toggle('collapsed');
+    });
+
+</script>
