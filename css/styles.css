@@ -1,6 +1,6 @@
 body { 
     font-family:'Verdana', Times, serif;
-    background-color: #ffffff;
+    background-color: #f5f1e3;
 }
 
 /* header */
@@ -59,7 +59,7 @@ body {
 }
 
 .btn-light {
-    background-color:#92bbf9;
+    background-color:#a5b5cb;
     border-radius : 5px;
     border-color:aliceblue;
     text-align: center;
@@ -102,5 +102,26 @@ body {
 
 .sidebar .nav-link:hover {
     background-color: #34495e;
+    border-radius: 5px;
+}
+
+.tutor-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 20px;
+
+    width: 100%; /* important */
+}
+
+.tutor-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.tutor-card img {
+    width: 100%;
+    height: auto;
     border-radius: 5px;
 }
