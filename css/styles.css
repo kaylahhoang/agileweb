@@ -1,6 +1,10 @@
 body { 
-    font-family:'Verdana', Times, serif;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
     background-color: #ffffff;
+}
+
+body.login-body {
+    overflow: hidden;
 }
 
 /* header */
@@ -32,7 +36,7 @@ body {
     align-items: center;
 }
 
-/* container */
+
 .container {
     background-color: #3e5c76;
     border-radius: 5px;
@@ -41,8 +45,26 @@ body {
     color: #ffffff;
 }
 
+.login-container {
+    background-color: #3e5c76;
+    width:50%;
+    height: 100vh;
+    position: relative;
+    border-radius: 10px;
+    color: #ffffff;
+    overflow: hidden;
+}
 
-/* buttons */
+.tutor-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 20px;
+
+    width: 100%; /* important */
+}
+
+
 
 .btn-primary {
     background-color:#748CAB;
@@ -103,4 +125,61 @@ body {
 .sidebar .nav-link:hover {
     background-color: #34495e;
     border-radius: 5px;
+}
+
+
+
+.tutor-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.tutor-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+/* login and register */
+
+.wrapper {
+    display: flex;
+    width : 300vw;
+    height: 100vh;
+    transition: transform 0.5s ease-in-out;
+}
+
+
+.screen {
+    width: 100vw;
+    height: 100vh;
+}
+
+.split {
+    display : flex;
+}
+
+.half {
+    width : 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.blue {
+    
+    background-color: #3e5c76;
+    color: white;
+}
+
+.white {
+    background-color: white;
+
+    color: #3e5c76;
+}
+
+.transition{
+    background: white;
 }
