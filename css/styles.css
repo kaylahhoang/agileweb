@@ -7,6 +7,11 @@ body.login-body {
     overflow: hidden;
 }
 
+.main-content {
+    flex: 1;
+    padding: 1rem;
+}
+
 /* header */
 
 .app-header {
