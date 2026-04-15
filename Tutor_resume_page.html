@@ -8,40 +8,10 @@
 
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
 
-    <header class="app-header d-flex align-items-center">
+<body data-title = "Tutors">
 
-        <button id="toggleSidebar" class="btn btn-light">☰</button>
-
-        <h1 class = "header-title"> OUR TUTORS </h1>
-
-        <div class = "header-right">
-            <a href="#" class="btn btn-light">Logout</a>
-        </div>
-    </header>
-
-    <div class="d-flex">
-
-        <div class="sidebar">
-            <h4 class="app-header"> Navigation </h4>
-
-            <ul class="nav flex-column mt-4">
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert link">Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Bookings</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Tutors</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Profile</a>
-                </li>
-            </ul>
-        </div>
-    
+   <div id = "layout">  </div>
 
     <div class = "tutor-container">
         <div class = "tutor-card">
@@ -106,15 +76,26 @@
     </div>
 
 </div>  
-</body>
-</html>
-
 <script>
-    document.getElementById('toggleSidebar').addEventListener('click', function() {
-        document.querySelector('.sidebar').classList.toggle('collapsed');
-    });
+    fetch('layout.html')
+    .then(res => res.text())
+    .then(html => {
+        document.getElementById('layout').innerHTML = html;
 
+        document.getElementById('pageTitle').textContent = document.body.dataset.title;
+
+        // move tutor cards into the layout's content slot
+        document.getElementById('pageContent').appendChild(
+            document.querySelector('.tutor-container')
+        );
+
+        document.getElementById('toggleSidebar').addEventListener('click', function () {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+        });
+
+        document.body.style.visibility = "visible";
+    });
 </script>
 
-
+</body>
 </html>

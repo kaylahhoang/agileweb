@@ -7,48 +7,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body data-title="Schedule">
 
-    <header class="app-header d-flex align-items-center">
+    <div id="layout"></div>
 
-        <button id="toggleSidebar" class="btn btn-light">☰</button>
-
-        <h1 class = "header-title"> SCHEDULE </h1>
-
-        <div class = "header-right">
-            <a href="#" class="btn btn-light">Logout</a>
-        </div>
-    </header>
-
-    <div class="d-flex">
-
-        <div class="sidebar">
-            <h4 class="app-header"> Navigation </h4>
-
-            <ul class="nav flex-column mt-4">
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert link">Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Bookings</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Schedule</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Tutors</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Messages</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Profile</a>
-                </li>
-            </ul>
-        </div>
-
-        <div class="content">
-            <div class="main-card">
+        <div class="main-card">
                 <div class="top-row">
                     <h2>Class Schedule</h2>
 
@@ -290,18 +253,29 @@
 
             </div>
         </div>
-    </div>
 
     <script>
         let currentView = "monthly";
 
-        const toggleButton = document.getElementById("toggleSidebar");
-        const sidebar = document.querySelector(".sidebar");
+        fetch('layout.html')
+        .then(res => res.text())
+        .then(html => {
+            document.getElementById('layout').innerHTML = html;
 
-        toggleButton.addEventListener("click", function () {
-            sidebar.classList.toggle("collapsed");
+            document.getElementById('pageTitle').textContent = document.body.dataset.title;
+
+            // move schedule content into the layout's content slot
+            document.getElementById('pageContent').appendChild(
+                document.querySelector('.main-card')
+            );
+
+            document.getElementById('toggleSidebar').addEventListener('click', function () {
+                document.querySelector('.sidebar').classList.toggle('collapsed');
+
+            });
+
+            document.body.style.visibility = "visible";
         });
-
         function switchView(view) {
             document.getElementById("monthlyView").style.display = "none";
             document.getElementById("weeklyView").style.display = "none";
