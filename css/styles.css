@@ -1,6 +1,6 @@
 body { 
     font-family: Verdana, Geneva, Tahoma, sans-serif;
-    background-color: #ffffff;
+    background-color: #f7f7f2;
     visibility: hidden;
 }
 
@@ -620,4 +620,24 @@ body.login-body {
     .message-bubble {
         max-width: 85%;
     }
+}
+
+
+/* Feedback page */
+
+.feedback-content {
+
+            min-height: 100vh;
+}
+
+.feedback-card {
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+.note-box {
+            background-color: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
 }
