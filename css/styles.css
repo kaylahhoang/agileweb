@@ -287,6 +287,26 @@ body.login-body {
     border-radius: 5px;
 }
 
+.field-error {
+    display: block;
+    color: #f8d7da;
+    font-size: 0.8rem;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+.flash-error {
+    color: #f8d7da;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.flash-success {
+    color: #d4edda;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
 .side-panel-content {
     display: flex;
     flex-direction: column;
