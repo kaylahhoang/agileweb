@@ -46,6 +46,11 @@ def register():
     return render_template('login.html', login_form=login_form, register_form=register_form, show_register=True)
 
 
+@app.route('/tutors')
+def tutors():
+    return render_template('tutors.html')
+
+
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout():
