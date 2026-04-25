@@ -10,43 +10,7 @@
 </head>
 <body>
 
-<header class="app-header d-flex align-items-center">
-
-        <button id="toggleSidebar" class="btn btn-light">☰</button>
-
-        <h1 class = "header-title"> MESSAGES </h1>
-
-        <div class = "header-right">
-            <a href="#" class="btn btn-light">Logout</a>
-        </div>
-    </header>
-
-    <div class="d-flex">
-
-        <div class="sidebar">
-            <h4 class="app-header"> Navigation </h4>
-
-            <ul class="nav flex-column mt-4">
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert link">Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Bookings</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Schedule</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Tutors</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Messages</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="Insert Link">Profile</a>
-                </li>
-            </ul>
-        </div>
+    <div id = "layout">  </div>
 
     <div class="content">
         <div class="messages-layout">
@@ -138,12 +102,26 @@
 </div>
 
 <script>
-const toggleButton = document.getElementById("toggleSidebar");
-        const sidebar = document.querySelector(".sidebar");
 
-        toggleButton.addEventListener("click", function () {
-            sidebar.classList.toggle("collapsed");
+fetch('layout.html')
+    .then(res => res.text())
+    .then(html => {
+        document.getElementById('layout').innerHTML = html;
+
+        document.getElementById('pageTitle').textContent = document.body.dataset.title;
+
+        // move tutor cards into the layout's content slot
+        document.getElementById('pageContent').appendChild(
+            document.querySelector('.messages-layout')
+        );
+
+        document.getElementById('toggleSidebar').addEventListener('click', function () {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
         });
+
+        document.body.style.visibility = "visible";
+    });
+
 
 const conversations = {
     "Emma Lee": {
@@ -234,6 +212,8 @@ messageForm.addEventListener("submit", function(event) {
 });
 
 renderMessages(activeConversation);
+
+
 </script>
 </body>
 </html>
