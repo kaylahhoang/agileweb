@@ -2,7 +2,7 @@ from flask import jsonify, render_template, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from app.models import User
-from app.forms import LoginForm, RegisterForm
+from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 
 
 @app.route('/')
@@ -44,6 +44,15 @@ def register():
             return redirect(url_for('login'))
 
     return render_template('login.html', login_form=login_form, register_form=register_form, show_register=True)
+
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        flash('If that email is registered, you will receive reset instructions shortly.', 'success')
+        return redirect(url_for('forgot_password'))
+    return render_template('forgotpassword.html', form=form)
 
 
 @app.route('/tutors')
