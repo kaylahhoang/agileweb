@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TutorHub — Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Dashboard-only additions — consistent with style.css colours */
+    .stat-card {
+      background: white;
+      border-radius: 10px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-top: 4px solid #3e5c76;
+    }
+    .stat-card.accent { border-top-color: #748CAB; }
+    .stat-card.light  { border-top-color: #A3D2CA; }
+    .stat-card.mid    { border-top-color: #a5b5cb; }
+
+    .stat-value { font-size: 2rem; font-weight: 700; color: #3e5c76; margin: 6px 0 2px; }
+    .stat-label { font-size: 0.78rem; color: #6c7a89; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+    .stat-sub   { font-size: 0.8rem; color: #6c7a89; }
+
+    .ann-item {
+      padding: 11px 14px;
+      border-radius: 6px;
+      border-left: 4px solid #748CAB;
+      background-color: #f4f7fb;
+      margin-bottom: 10px;
+    }
+    .ann-item.urgent  { border-left-color: #c0392b; }
+    .ann-item.success { border-left-color: #A3D2CA; }
+    .ann-item p   { margin: 0 0 2px; font-size: 0.88rem; font-weight: 600; color: #2c3e50; }
+    .ann-item small { color: #6c7a89; font-size: 0.78rem; }
+
+    .sched-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background-color: #f4f7fb;
+      margin-bottom: 8px;
+    }
+    .sched-time { font-size: 0.75rem; font-weight: 700; color: #3e5c76; width: 58px; flex-shrink: 0; text-align: center; }
+    .sched-divider { width: 1px; height: 30px; background: #d9e2ec; }
+    .sched-info { flex: 1; }
+    .sched-info strong { font-size: 0.86rem; color: #2c3e50; display: block; }
+    .sched-info small  { font-size: 0.76rem; color: #6c7a89; }
+    .tag { font-size: 0.7rem; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+    .tag-today    { background: #d6e6f2; color: #3e5c76; }
+    .tag-tomorrow { background: #dcefe8; color: #2a7a6a; }
+    .tag-upcoming { background: #e7edf3; color: #748CAB; }
+
+    .feedback-item {
+      padding: 11px 14px;
+      border-radius: 6px;
+      background: #f4f7fb;
+      margin-bottom: 10px;
+    }
+    .feedback-name  { font-size: 0.87rem; font-weight: 600; color: #2c3e50; }
+    .feedback-stars { color: #f0a500; font-size: 0.83rem; }
+    .feedback-text  { font-size: 0.82rem; color: #555; margin: 4px 0 3px; }
+    .feedback-sub   { font-size: 0.74rem; color: #6c7a89; }
+
+    .msg-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #f4f7fb;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background .18s;
+      text-decoration: none;
+    }
+    .msg-preview:hover { background: #eaf1f8; }
+    .msg-preview.unread { border-left: 3px solid #3e5c76; }
+    .msg-body-text { flex: 1; min-width: 0; }
+    .msg-body-text strong { font-size: 0.87rem; color: #2c3e50; display: block; }
+    .msg-body-text small  { font-size: 0.79rem; color: #6c7a89; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .msg-time  { font-size: 0.74rem; color: #6c7a89; flex-shrink: 0; }
+    .unread-dot { width: 8px; height: 8px; background: #3e5c76; border-radius: 50%; }
+
+    .quick-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 16px 8px;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      text-decoration: none;
+      color: #3e5c76;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: box-shadow .2s, transform .2s;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+    .quick-link:hover { box-shadow: 0 4px 14px rgba(62,92,118,.2); transform: translateY(-2px); color: #3e5c76; }
+    .quick-link .ql-icon { font-size: 1.4rem; }
+
+    .nav-section-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #a5b5cb;
+      padding: 14px 16px 4px;
+    }
+
+    .topbar-search-wrap { position: relative; flex: 1; max-width: 400px; }
+    .topbar-search-wrap input {
+      background: #f4f7fb;
+      border: 1px solid #d9e2ec;
+      border-radius: 6px;
+      padding: 7px 14px 7px 34px;
+      width: 100%;
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      font-size: 0.85rem;
+      color: #2c3e50;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .topbar-search-wrap input:focus { border-color: #748CAB; }
+    .topbar-search-wrap input::placeholder { color: #a5b5cb; }
+    .topbar-search-wrap .s-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%); color: #a5b5cb; font-size: 0.8rem; pointer-events: none;
+    }
+
+    .toggle-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
+    .welcome-card { background: linear-gradient(135deg, #3e5c76, #748CAB); border-radius: 10px; padding: 22px 24px; color: white; margin-bottom: 20px; }
+    .welcome-card h4 { margin: 0 0 4px; font-weight: 700; }
+    .welcome-card p  { margin: 0; font-size: 0.87rem; opacity: .85; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="app-header">
+  <div class="d-flex align-items-center gap-2">
+    <button class="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    <span style="font-size:1.05rem; font-weight:700;">🎓 TutorHub</span>
+  </div>
+
+  <h5 class="header-center mb-0">Dashboard</h5>
+
+  <div class="header-right gap-3">
+    <span style="font-size:0.85rem;">👋 Alex Johnson</span>
+    <a href="logout.html" class="btn btn-light btn-sm" style="font-size:0.78rem;">Logout</a>
+  </div>
+</header>
+
+<!-- ═══ PAGE BODY ═══ -->
+<div class="d-flex">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="active">⊞ &nbsp;Dashboard</a>
+    <a href="search.html">🔍 &nbsp;Find Tutors</a>
+    <a href="profiles.html">👤 &nbsp;Profiles</a>
+    <a href="resumes.html">📄 &nbsp;Resumes</a>
+
+    <div class="nav-section-label">Learning</div>
+    <a href="timetable.html" class="d-flex align-items-center justify-content-between">
+      <span>📅 &nbsp;Timetable</span>
+      <span class="badge rounded-pill" style="background:#A3D2CA;color:#2c3e50;font-size:.68rem;">3</span>
+    </a>
+    <a href="feedback.html" class="d-flex align-items-center justify-content-between">
+      <span>⭐ &nbsp;Feedback</span>
+      <span class="badge rounded-pill" style="background:#748CAB;color:white;font-size:.68rem;">5</span>
+    </a>
+
+    <div class="nav-section-label">Communication</div>
+    <a href="messages.html" class="d-flex align-items-center justify-content-between">
+      <span>💬 &nbsp;Messages</span>
+      <span class="badge rounded-pill" style="background:#3e5c76;color:white;font-size:.68rem;">2</span>
+    </a>
+    <a href="announcements.html">📢 &nbsp;Announcements</a>
+
+    <div class="nav-section-label">Account</div>
+    <a href="settings.html">⚙️ &nbsp;Settings</a>
+    <a href="logout.html">🚪 &nbsp;Logout</a>
+
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="content">
+
+    <!-- Top row: search + date -->
+    <div class="top-row">
+      <div class="topbar-search-wrap">
+        <span class="s-icon">🔍</span>
+        <input type="text" placeholder="Search tutors, subjects, sessions…" />
+      </div>
+      <span style="font-size:0.8rem; color:#6c7a89;" id="datechip"></span>
+    </div>
+
+    <!-- Welcome banner -->
+    <div class="welcome-card">
+      <h4>Welcome back, Alex 👋</h4>
+      <p>Here's your overview for today. You have 2 unread messages and 3 upcoming sessions.</p>
+    </div>
+
+    <!-- OVERVIEW STATS -->
+    <h6 style="color:#3e5c76; font-weight:700; margin-bottom:12px;">Your Overview</h6>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-label">Sessions This Week</div>
+          <div class="stat-value">6</div>
+          <div class="stat-sub">+2 from last week</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card accent">
+          <div class="stat-label">Active Tutors</div>
+          <div class="stat-value">3</div>
+          <div class="stat-sub">Across 4 subjects</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card light">
+          <div class="stat-label">Hours Learned</div>
+          <div class="stat-value">18</div>
+          <div class="stat-sub">+5h this month</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card mid">
+          <div class="stat-label">Avg. Feedback</div>
+          <div class="stat-value">4.8</div>
+          <div class="stat-sub">From 12 reviews</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK ACCESS -->
+    <h6 style="color:#3e5c76; font-weight:700; margin-bottom:12px;">Quick Access</h6>
+    <div class="row g-3 mb-4">
+      <div class="col-4 col-md-2"><a href="timetable.html"    class="quick-link"><span class="ql-icon">📅</span>Timetable</a></div>
+      <div class="col-4 col-md-2"><a href="feedback.html"     class="quick-link"><span class="ql-icon">⭐</span>Feedback</a></div>
+      <div class="col-4 col-md-2"><a href="resumes.html"      class="quick-link"><span class="ql-icon">📄</span>Resumes</a></div>
+      <div class="col-4 col-md-2"><a href="profiles.html"     class="quick-link"><span class="ql-icon">👤</span>Profiles</a></div>
+      <div class="col-4 col-md-2"><a href="messages.html"     class="quick-link"><span class="ql-icon">💬</span>Messages</a></div>
+      <div class="col-4 col-md-2"><a href="search.html"       class="quick-link"><span class="ql-icon">🔍</span>Find Tutors</a></div>
+    </div>
+
+    <!-- ANNOUNCEMENTS + SCHEDULE -->
+    <div class="row g-4 mb-4">
+
+      <div class="col-12 col-md-6">
+        <div class="main-card h-100">
+          <div class="top-row mb-3">
+            <h5 style="color:#3e5c76;margin:0;">📢 Announcements</h5>
+            <a href="announcements.html" style="font-size:0.8rem;color:#748CAB;text-decoration:none;">View all →</a>
+          </div>
+          <div class="ann-item urgent">
+            <p>Platform maintenance scheduled for Sunday 2am–4am</p>
+            <small>Admin · 2 hours ago</small>
+          </div>
+          <div class="ann-item">
+            <p>New tutors available in Data Science and Machine Learning</p>
+            <small>Admin · Yesterday</small>
+          </div>
+          <div class="ann-item success">
+            <p>Your session with Dr. Patel has been confirmed for Friday</p>
+            <small>System · 1 day ago</small>
+          </div>
+          <div class="ann-item">
+            <p>Semester 2 tutor registration is now open — book early!</p>
+            <small>Admin · 3 days ago</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="main-card h-100">
+          <div class="top-row mb-3">
+            <h5 style="color:#3e5c76;margin:0;">📅 Class Schedules</h5>
+            <a href="timetable.html" style="font-size:0.8rem;color:#748CAB;text-decoration:none;">Full timetable →</a>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">9:00 AM</div><div class="sched-divider"></div>
+            <div class="sched-info"><strong>Calculus II</strong><small>Dr. Sarah Patel · Room 204</small></div>
+            <span class="tag tag-today">Today</span>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">11:30 AM</div><div class="sched-divider"></div>
+            <div class="sched-info"><strong>Data Structures</strong><small>Mr. James Lee · Online</small></div>
+            <span class="tag tag-today">Today</span>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">2:00 PM</div><div class="sched-divider"></div>
+            <div class="sched-info"><strong>Physics Lab Review</strong><small>Ms. Chen Wu · Lab 3</small></div>
+            <span class="tag tag-tomorrow">Tomorrow</span>
+          </div>
+          <div class="sched-item">
+            <div class="sched-time">4:30 PM</div><div class="sched-divider"></div>
+            <div class="sched-info"><strong>Essay Writing</strong><small>Dr. Ahmed Osman · Online</small></div>
+            <span class="tag tag-upcoming">Friday</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK + MESSAGES -->
+    <div class="row g-4 mb-4">
+
+      <div class="col-12 col-md-6">
+        <div class="main-card h-100">
+          <div class="top-row mb-3">
+            <h5 style="color:#3e5c76;margin:0;">⭐ Recent Feedback</h5>
+            <a href="feedback.html" style="font-size:0.8rem;color:#748CAB;text-decoration:none;">View all →</a>
+          </div>
+          <div class="feedback-item">
+            <div class="d-flex justify-content-between">
+              <span class="feedback-name">Dr. Sarah Patel</span>
+              <span class="feedback-stars">★★★★★</span>
+            </div>
+            <div class="feedback-text">"Alex showed great improvement with integration problems this week."</div>
+            <div class="feedback-sub">Calculus II · 2 days ago</div>
+          </div>
+          <div class="feedback-item">
+            <div class="d-flex justify-content-between">
+              <span class="feedback-name">Mr. James Lee</span>
+              <span class="feedback-stars">★★★★☆</span>
+            </div>
+            <div class="feedback-text">"Good understanding of linked lists. Work on time complexity more."</div>
+            <div class="feedback-sub">Data Structures · 4 days ago</div>
+          </div>
+          <div class="feedback-item">
+            <div class="d-flex justify-content-between">
+              <span class="feedback-name">Ms. Chen Wu</span>
+              <span class="feedback-stars">★★★★★</span>
+            </div>
+            <div class="feedback-text">"Excellent lab report. Very thorough analysis."</div>
+            <div class="feedback-sub">Physics Lab · 1 week ago</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="main-card h-100">
+          <div class="top-row mb-3">
+            <h5 style="color:#3e5c76;margin:0;">💬 Messages</h5>
+            <a href="messages.html" style="font-size:0.8rem;color:#748CAB;text-decoration:none;">Open inbox →</a>
+          </div>
+
+          <a href="messages.html" class="msg-preview unread">
+            <div class="conversation-avatar" style="width:36px;height:36px;font-size:0.76rem;flex-shrink:0;">SP</div>
+            <div class="msg-body-text">
+              <strong>Dr. Sarah Patel</strong>
+              <small>Can you review the practice sheet before Friday?</small>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-1">
+              <span class="msg-time">10m</span>
+              <span class="unread-dot"></span>
+            </div>
+          </a>
+
+          <a href="messages.html" class="msg-preview unread">
+            <div class="conversation-avatar" style="width:36px;height:36px;font-size:0.76rem;background:#A3D2CA;color:#2c3e50;flex-shrink:0;">JL</div>
+            <div class="msg-body-text">
+              <strong>Mr. James Lee</strong>
+              <small>I've uploaded the lecture notes for this week.</small>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-1">
+              <span class="msg-time">1h</span>
+              <span class="unread-dot"></span>
+            </div>
+          </a>
+
+          <a href="messages.html" class="msg-preview">
+            <div class="conversation-avatar" style="width:36px;height:36px;font-size:0.76rem;background:#a5b5cb;flex-shrink:0;">CW</div>
+            <div class="msg-body-text">
+              <strong>Ms. Chen Wu</strong>
+              <small>Great session today! See you next Tuesday.</small>
+            </div>
+            <span class="msg-time">2d</span>
+          </a>
+
+          <a href="messages.html" class="msg-preview">
+            <div class="conversation-avatar" style="width:36px;height:36px;font-size:0.76rem;background:#c0392b;flex-shrink:0;">AO</div>
+            <div class="msg-body-text">
+              <strong>Dr. Ahmed Osman</strong>
+              <small>Your essay structure looks solid — notes attached.</small>
+            </div>
+            <span class="msg-time">3d</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /d-flex -->
+
+<script>
+  // Live date
+  const d = new Date();
+  document.getElementById('datechip').textContent =
+    d.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  // Sidebar toggle
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+
+  // Active nav highlight
+  document.querySelectorAll('.sidebar a').forEach(link => {
+    link.addEventListener('click', function () {
+      document.querySelectorAll('.sidebar a').forEach(l => l.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
