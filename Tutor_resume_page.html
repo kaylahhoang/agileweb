@@ -19,7 +19,17 @@
             <h3>John Doe</h3>
             <p>Mathematics Tutor</p>
             <div class="d-grid gap-2 d-md-block">
-            <button type="button" class="btn btn-secondary"> About Me </button>
+            <button type="button" class="btn btn-secondary about-me-btn"> About Me </button>
+            <button type="button" class="btn btn-secondary"> Leave a review </button>
+            </div>
+        </div>
+
+        <div class = "tutor-card">
+            <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
+            <h3>John Doe</h3>
+            <p>Mathematics Tutor</p>
+            <div class="d-grid gap-2 d-md-block">
+            <button type="button" class="btn btn-secondary about-me-btn"> About Me </button>
             <button type="button" class="btn btn-secondary"> Leave a review </button>
             </div>
         </div>
@@ -33,22 +43,12 @@
             <button type="button" class="btn btn-secondary"> Leave a review </button>
             </div>
         </div>
-
         <div class = "tutor-card">
             <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
             <h3>John Doe</h3>
             <p>Mathematics Tutor</p>
             <div class="d-grid gap-2 d-md-block">
-            <button type="button" class="btn btn-secondary"> About Me </button>
-            <button type="button" class="btn btn-secondary"> Leave a review </button>
-            </div>
-        </div>
-        <div class = "tutor-card">
-            <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-            <h3>John Doe</h3>
-            <p>Mathematics Tutor</p>
-            <div class="d-grid gap-2 d-md-block">
-            <button type="button" class="btn btn-secondary"> About Me </button>
+            <button type="button" class="btn btn-secondary about-me-btn"> About Me </button>
             <button type="button" class="btn btn-secondary"> Leave a review </button>
             </div>
         </div>
@@ -58,7 +58,7 @@
             <h3>John Doe</h3>
             <p>Mathematics Tutor</p>
             <div class="d-grid gap-2 d-md-block">
-            <button type="button" class="btn btn-secondary"> About Me </button>
+            <button type="button" class="btn btn-secondary about-me-btn"> About Me </button>
             <button type="button" class="btn btn-secondary"> Leave a review </button>
             </div>
         </div>
@@ -68,7 +68,7 @@
             <h3>John Doe</h3>
             <p>Mathematics Tutor</p>
             <div class="d-grid gap-2 d-md-block">
-            <button type="button" class="btn btn-secondary"> About Me </button>
+            <button type="button" class="btn btn-secondary about-me-btn"> About Me </button>
             <button type="button" class="btn btn-secondary"> Leave a review </button>
             </div>
         </div>
@@ -94,6 +94,12 @@
         });
 
         document.body.style.visibility = "visible";
+
+        document.querySelectorAll('.about-me-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            window.location.href = 'Tutor_detail_page.html';
+        });
+    });
     });
 </script>
 
