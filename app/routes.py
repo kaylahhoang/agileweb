@@ -60,11 +60,11 @@ def tutors():
     return render_template('tutors.html')
 
 
-@app.route('/api/logout', methods=['POST'])
+@app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
     logout_user()
-    return jsonify({'message': 'Logged out'}), 200
+    return redirect(url_for('login'))
 
 
 @app.route('/api/me', methods=['GET'])

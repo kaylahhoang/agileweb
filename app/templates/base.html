@@ -13,7 +13,7 @@
     <button id="toggleSidebar" class="btn btn-light">☰</button>
     <h1 class="header-title header-center">{% block page_title %}App{% endblock %}</h1>
     <div class="header-right">
-        <a href="#" class="btn btn-light">Logout</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
     </div>
 </header>
 
