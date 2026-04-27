@@ -357,6 +357,218 @@ body.login-body {
     background: white;
 }
 
+/* Profile offcanvas panel */
+
+.profile-offcanvas {
+    background-color: #2c3e50;
+    color: white;
+    width: 320px !important;
+}
+
+.profile-offcanvas .offcanvas-header {
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    padding: 20px;
+}
+
+.profile-offcanvas .offcanvas-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.profile-offcanvas .offcanvas-body {
+    padding: 0;
+}
+
+.profile-section {
+    padding: 18px 20px;
+}
+
+.profile-section-label {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: #a5b5cb;
+    margin-bottom: 10px;
+}
+
+.profile-stat {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #A3D2CA;
+    line-height: 1;
+}
+
+.profile-divider {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin: 0;
+}
+
+.profile-textarea {
+    width: 100%;
+    min-height: 130px;
+    background-color: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    color: white;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.profile-textarea::placeholder {
+    color: rgba(255,255,255,0.35);
+}
+
+.profile-textarea:focus {
+    outline: none;
+    border-color: #748CAB;
+    background-color: rgba(255,255,255,0.12);
+}
+
+.btn-profile-save {
+    background-color: #748CAB;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 14px;
+}
+
+.btn-profile-save:hover {
+    background-color: #5a7290;
+    color: white;
+}
+
+.btn-profile-view {
+    background-color: transparent;
+    color: #A3D2CA;
+    border: 1px solid #A3D2CA;
+    border-radius: 5px;
+    padding: 6px 14px;
+}
+
+.btn-profile-view:hover {
+    background-color: #A3D2CA;
+    color: #2c3e50;
+}
+
+.save-status {
+    font-size: 0.8rem;
+    margin: 6px 0 0 0;
+    min-height: 1.2em;
+}
+
+.save-ok  { color: #A3D2CA; }
+.save-err { color: #f8d7da; }
+
+.profile-empty {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.88rem;
+    font-style: italic;
+    margin: 0;
+}
+
+.upcoming-session-card {
+    background-color: rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+
+.upcoming-subject {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+.upcoming-meta {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.4;
+}
+
+.session-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 5px;
+    text-transform: capitalize;
+}
+
+.badge-pending   { background-color: #748CAB; color: white; }
+.badge-confirmed { background-color: #A3D2CA; color: #2c3e50; }
+.badge-completed { background-color: #3e5c76; color: white; }
+.badge-scheduled { background-color: #748CAB; color: white; }
+.badge-cancelled { background-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
+
+.feedback-bubble {
+    background-color: rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 3px solid #A3D2CA;
+}
+
+.feedback-text {
+    margin: 0 0 6px 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.feedback-meta {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+}
+
+.feedback-session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.feedback-session-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255,255,255,0.07);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background-color 0.15s ease;
+    font-family: inherit;
+}
+
+.feedback-session-item:hover {
+    background-color: rgba(255,255,255,0.13);
+}
+
+.feedback-session-item.active {
+    border-color: #A3D2CA;
+    background-color: rgba(163,210,202,0.15);
+}
+
+.feedback-session-subject {
+    font-weight: 500;
+}
+
+.feedback-session-date {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.profile-btn {
+    font-size: 1.1rem;
+    padding: 4px 10px;
+}
+
 /* Schedule page */
 .sidebar a {
     display: block;
