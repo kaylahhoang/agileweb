@@ -12,10 +12,116 @@
 <header class="app-header d-flex align-items-center">
     <button id="toggleSidebar" class="btn btn-light">☰</button>
     <h1 class="header-title header-center">{% block page_title %}App{% endblock %}</h1>
-    <div class="header-right">
+    <div class="header-right d-flex align-items-center gap-2">
+            {% if current_user.is_authenticated %}
+            <button class="btn btn-light profile-btn"
+                type = "button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#profilePanel"
+                aria-controls="profilePanel">
+            👤
+
+            </button>
+                 
+              
         <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
+        {% endif %}
     </div>
 </header>
+
+{% if current_user.is_authenticated %}
+<div class="offcanvas offcanvas-end profile-offcanvas" tabindex="-1" id="profilePanel" aria-labelledby="profilePanelLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="profileOffcanvasLabel">👤</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+
+    {% if current_user.role == 'tutor' %}
+
+    <div class="profile-section">
+            <a href="#" class="btn btn-profile-view w-100">View &amp; Edit Public Page ↗</a>
+        </div>
+
+        <div class="profile-divider"></div>
+
+        <div class="profile-section">
+            <h6 class="profile-section-label">Sessions Run</h6>
+            <div class="profile-stat">{{ sessions_run }}</div>
+        </div>
+
+        <div class="profile-divider"></div>
+
+        <div class="profile-section">
+            <h6 class="profile-section-label">Next Sessions</h6>
+            {% if upcoming_sessions %}
+                {% for s in upcoming_sessions %}
+                <div class="upcoming-session-card">
+                    <div class="upcoming-subject">{{ s.subject or 'Session' }}</div>
+                    <div class="upcoming-meta">{{ s.datetime.strftime('%d %b %Y, %H:%M') }}</div>
+                    <div class="upcoming-meta">with {{ s.student.username }}</div>
+                    <span class="session-badge badge-{{ s.status }}">{{ s.status }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="profile-empty">No upcoming sessions</p>
+            {% endif %}
+        </div>
+
+    {% else %}
+
+        <div class="profile-section">
+            <h6 class="profile-section-label">Sessions Attended</h6>
+            <div class="profile-stat">{{ sessions_attended }}</div>
+        </div>
+
+        <div class="profile-divider"></div>
+
+        <div class="profile-section">
+            <h6 class="profile-section-label">Feedback — Last 3 Months</h6>
+            {% if recent_feedback_sessions %}
+                <div class="feedback-session-list">
+                    {% for s in recent_feedback_sessions %}
+                    <button class="feedback-session-item"
+                            onclick="selectFeedback(this)"
+                            data-feedback="{{ s.feedback }}"
+                            data-meta="{{ s.subject or 'Session' }} — {{ s.datetime.strftime('%d %b %Y') }}">
+                        <span class="feedback-session-subject">{{ s.subject or 'Session' }}</span>
+                        <span class="feedback-session-date">{{ s.datetime.strftime('%d %b') }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                <div id="feedbackDisplay" class="feedback-bubble mt-2" style="display:none;">
+                    <p class="feedback-text" id="feedbackText"></p>
+                    <p class="feedback-meta" id="feedbackMeta"></p>
+                </div>
+            {% else %}
+                <p class="profile-empty">No feedback in the last 3 months</p>
+            {% endif %}
+        </div>
+
+        <div class="profile-divider"></div>
+
+        <div class="profile-section">
+            <h6 class="profile-section-label">Upcoming Sessions</h6>
+            {% if upcoming_sessions %}
+                {% for s in upcoming_sessions %}
+                <div class="upcoming-session-card">
+                    <div class="upcoming-subject">{{ s.subject or 'Session' }}</div>
+                    <div class="upcoming-meta">{{ s.datetime.strftime('%d %b %Y, %H:%M') }}</div>
+                    <div class="upcoming-meta">with {{ s.tutor.username }}</div>
+                    <span class="session-badge badge-{{ s.status }}">{{ s.status }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="profile-empty">No upcoming sessions</p>
+            {% endif %}
+        </div>
+
+    {% endif %}
+    </div>
+</div>
+{% endif %}
 
 <div class="d-flex">
     <div class="sidebar">
@@ -33,9 +139,6 @@
             <li class="nav-item">
                 <a class="nav-link text-white" href="/messages">Messages</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link text-white" href="/profile">Profile</a>
-            </li>
         </ul>
     </div>
 
@@ -49,6 +152,15 @@
     document.getElementById('toggleSidebar').addEventListener('click', function () {
         document.querySelector('.sidebar').classList.toggle('collapsed');
     });
+
+    function selectFeedback(button) {
+        document.querySelectorAll('.feedback-session-item').forEach(btn => btn.classList.remove('active')); 
+        button.classList.add('active');
+        document.getElementById('feedbackText').textContent = button.dataset.feedback;
+        document.getElementById('feedbackMeta').textContent = button.dataset.meta;
+        document.getElementById('feedbackDisplay').style.display = 'block';
+    }
+
 </script>
 
 </body>

@@ -1,4 +1,4 @@
-from flask import jsonify, render_template, redirect, url_for, flash, request
+from flask import jsonify, render_template, redirect, url_for, flash
 from datetime import datetime, timedelta, timezone
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
@@ -95,21 +95,6 @@ def forgot_password():
 @app.route('/tutors')
 def tutors():
     return render_template('tutors.html')
-
-@app.route('/profile/save', methods=['POST'])
-@login_required
-def profile_save():
-    if current_user.role != 'tutor':
-        return jsonify({'error': 'Unauthorized'}), 403
-    about_me = request.json.get('about_me', '')
-    profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
-    if not profile:
-        profile = TutorProfile(tutor_id=current_user.id, about_me=about_me)
-        db.session.add(profile)
-    else:
-        profile.about_me = about_me
-    db.session.commit()
-    return jsonify({'success': True})
 
 
 @app.route('/logout', methods=['GET', 'POST'])
