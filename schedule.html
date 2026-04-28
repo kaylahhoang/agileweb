@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedule - Tutoring System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body data-title="Schedule">
 
@@ -45,11 +45,25 @@
 
                         <div class="calendar-day">
                             <p class="day-number">1</p>
+                            
+                            {% for session in sessions %}
+                                <div class="class-pill math"
+                                    onclick="showDetails(
+                                        '{{ session.subject }}',
+                                        '{{ session.datetime.strftime("%d %b %Y, %I:%M %p") }}',
+                                        '{{ session.tutor.username }}',
+                                        '{{ session.location or "No location set" }}',
+                                        '{{ session.status }}'
+                                    )">
+                                    {{ session.subject }}
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">No sessions</p>
+                            {% endfor %}
                         </div>
 
                         <div class="calendar-day">
                             <p class="day-number">2</p>
-                            <div class="class-pill math" onclick="showDetails('Math 101', 'Apr 2, 10:00 AM', 'Dr. Smith', 'Room 204')">Math 101</div>
                         </div>
 
                         <div class="calendar-day">
@@ -58,7 +72,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">4</p>
-                            <div class="class-pill science" onclick="showDetails('Biology Lab', 'Apr 4, 2:00 PM', 'Prof. Johnson', 'Lab B')">Bio Lab</div>
                         </div>
 
                         <div class="calendar-day">
@@ -71,7 +84,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">7</p>
-                            <div class="class-pill english" onclick="showDetails('English Writing', 'Apr 7, 1:00 PM', 'Ms. Davis', 'Room 101')">English</div>
                         </div>
 
                         <div class="calendar-day">
@@ -80,7 +92,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">9</p>
-                            <div class="class-pill math" onclick="showDetails('Math 101', 'Apr 9, 10:00 AM', 'Dr. Smith', 'Room 204')">Math 101</div>
                         </div>
 
                         <div class="calendar-day">
@@ -89,7 +100,6 @@
 
                         <div class="calendar-day today">
                             <p class="day-number">11</p>
-                            <div class="class-pill history" onclick="showDetails('World History', 'Apr 11, 3:00 PM', 'Mr. Brown', 'Room 305')">History</div>
                         </div>
 
                         <div class="calendar-day">
@@ -102,7 +112,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">14</p>
-                            <div class="class-pill english" onclick="showDetails('English Writing', 'Apr 14, 1:00 PM', 'Ms. Davis', 'Room 101')">English</div>
                         </div>
 
                         <div class="calendar-day">
@@ -111,7 +120,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">16</p>
-                            <div class="class-pill math" onclick="showDetails('Math 101', 'Apr 16, 10:00 AM', 'Dr. Smith', 'Room 204')">Math 101</div>
                         </div>
 
                         <div class="calendar-day">
@@ -120,7 +128,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">18</p>
-                            <div class="class-pill science" onclick="showDetails('Biology Lab', 'Apr 18, 2:00 PM', 'Prof. Johnson', 'Lab B')">Bio Lab</div>
                         </div>
 
                         <div class="calendar-day">
@@ -133,7 +140,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">21</p>
-                            <div class="class-pill english" onclick="showDetails('English Writing', 'Apr 21, 1:00 PM', 'Ms. Davis', 'Room 101')">English</div>
                         </div>
 
                         <div class="calendar-day">
@@ -142,7 +148,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">23</p>
-                            <div class="class-pill math" onclick="showDetails('Math 101', 'Apr 23, 10:00 AM', 'Dr. Smith', 'Room 204')">Math 101</div>
                         </div>
 
                         <div class="calendar-day">
@@ -151,7 +156,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">25</p>
-                            <div class="class-pill history" onclick="showDetails('World History', 'Apr 25, 3:00 PM', 'Mr. Brown', 'Room 305')">History</div>
                         </div>
 
                         <div class="calendar-day">
@@ -164,7 +168,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">28</p>
-                            <div class="class-pill english" onclick="showDetails('English Writing', 'Apr 28, 1:00 PM', 'Ms. Davis', 'Room 101')">English</div>
                         </div>
 
                         <div class="calendar-day">
@@ -173,7 +176,6 @@
 
                         <div class="calendar-day">
                             <p class="day-number">30</p>
-                            <div class="class-pill math" onclick="showDetails('Math 101', 'Apr 30, 10:00 AM', 'Dr. Smith', 'Room 204')">Math 101</div>
                         </div>
 
                         <div class="calendar-day empty"></div>
@@ -184,71 +186,69 @@
                 <!-- Weekly View -->
                 <div id="weeklyView" style="display: none;">
                     <div class="weekly-list">
-                        <div class="week-class math" onclick="showDetails('Math 101', 'Monday, 10:00 AM', 'Dr. Smith', 'Room 204')">
-                            <h5>Monday</h5>
-                            <p>Math 101 - 10:00 AM</p>
-                            <p>Dr. Smith</p>
-                        </div>
-
-                        <div class="week-class english" onclick="showDetails('English Writing', 'Tuesday, 1:00 PM', 'Ms. Davis', 'Room 101')">
-                            <h5>Tuesday</h5>
-                            <p>English Writing - 1:00 PM</p>
-                            <p>Ms. Davis</p>
-                        </div>
-
-                        <div class="week-class science" onclick="showDetails('Biology Lab', 'Wednesday, 2:00 PM', 'Prof. Johnson', 'Lab B')">
-                            <h5>Wednesday</h5>
-                            <p>Biology Lab - 2:00 PM</p>
-                            <p>Prof. Johnson</p>
-                        </div>
-
-                        <div class="week-class history" onclick="showDetails('World History', 'Thursday, 3:00 PM', 'Mr. Brown', 'Room 305')">
-                            <h5>Thursday</h5>
-                            <p>World History - 3:00 PM</p>
-                            <p>Mr. Brown</p>
-                        </div>
-
-                        <div class="week-class math" onclick="showDetails('Math 101', 'Friday, 10:00 AM', 'Dr. Smith', 'Room 204')">
-                            <h5>Friday</h5>
-                            <p>Math 101 - 10:00 AM</p>
-                            <p>Dr. Smith</p>
-                        </div>
+                            {% for session in sessions %}
+                                <div class="week-class math"
+                                    onclick="showDetails(
+                                        '{{ session.subject }}',
+                                        '{{ session.datetime.strftime("%A, %d %b %Y, %I:%M %p") }}',
+                                        '{{ session.tutor.username }}',
+                                        '{{ session.location or "No location set" }}',
+                                        '{{ session.status }}'
+                                    )">
+                                    <h5>{{ session.datetime.strftime("%A") }}</h5>
+                                    <p>{{ session.subject }} - {{ session.datetime.strftime("%I:%M %p") }}</p>
+                                    <p>
+                                        {% if current_user.role == 'student' %}
+                                            Tutor: {{ session.tutor.username }}
+                                        {% else %}
+                                            Student: {{ session.student.username }}
+                                        {% endif %}
+                                    </p>
+                                    <p>Status: {{ session.status }}</p>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No sessions scheduled</p>
+                            {% endfor %}
                     </div>
                 </div>
 
                 <!-- Daily View -->
                 <div id="dailyView" style="display: none;">
                     <div class="daily-list">
-                        <div class="daily-class math" onclick="showDetails('Math 101', '10:00 AM - 11:00 AM', 'Dr. Smith', 'Room 204')">
-                            <h5>10:00 AM</h5>
-                            <p>Math 101</p>
-                            <p>Dr. Smith</p>
-                            <p>Room 204</p>
-                        </div>
-
-                        <div class="daily-class english" onclick="showDetails('English Writing', '1:00 PM - 2:30 PM', 'Ms. Davis', 'Room 101')">
-                            <h5>1:00 PM</h5>
-                            <p>English Writing</p>
-                            <p>Ms. Davis</p>
-                            <p>Room 101</p>
-                        </div>
-
-                        <div class="daily-class history" onclick="showDetails('World History', '3:00 PM - 4:00 PM', 'Mr. Brown', 'Room 305')">
-                            <h5>3:00 PM</h5>
-                            <p>World History</p>
-                            <p>Mr. Brown</p>
-                            <p>Room 305</p>
-                        </div>
+                            {% for session in sessions %}
+                                <div class="daily-class math"
+                                    onclick="showDetails(
+                                        '{{ session.subject }}',
+                                        '{{ session.datetime.strftime("%I:%M %p") }}',
+                                        '{{ session.tutor.username }}',
+                                        '{{ session.location or "No location set" }}',
+                                        '{{ session.status }}'
+                                    )">
+                                    <h5>{{ session.datetime.strftime("%I:%M %p") }}</h5>
+                                    <p>{{ session.subject }}</p>
+                                    <p>
+                                        {% if current_user.role == 'student' %}
+                                            Tutor: {{ session.tutor.username }}
+                                        {% else %}
+                                            Student: {{ session.student.username }}
+                                        {% endif %}
+                                    </p>
+                                    <p>Status: {{ session.status }}</p>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No sessions today</p>
+                            {% endfor %}
                     </div>
                 </div>
 
                 <!-- Simple Details Box -->
                 <div class="class-details-box mt-4" id="detailsBox">
-                    <h4>Class Details</h4>
-                    <p><strong>Class:</strong> <span id="className">Select a class</span></p>
+                    <h4>Session Details</h4>
+                    <p><strong>Subject:</strong> <span id="className">Select a session</span></p>
                     <p><strong>Time:</strong> <span id="classTime">-</span></p>
                     <p><strong>Tutor:</strong> <span id="classTutor">-</span></p>
                     <p><strong>Location:</strong> <span id="classLocation">-</span></p>
+                    <p><strong>Status:</strong> <span id="classStatus">-</span></p>
                 </div>
 
             </div>
@@ -306,11 +306,12 @@
             console.log("Change date:", direction);
         }
 
-        function showDetails(name, time, tutor, location) {
+        function showDetails(name, time, tutor, location, status) {
             document.getElementById("className").textContent = name;
             document.getElementById("classTime").textContent = time;
             document.getElementById("classTutor").textContent = tutor;
             document.getElementById("classLocation").textContent = location;
+            document.getElementById("classStatus").textContent = status;
         }
     </script>
 
