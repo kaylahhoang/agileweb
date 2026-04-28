@@ -53,6 +53,7 @@ class Session(db.Model):
     subject = db.Column(db.String(128), nullable=False)
     datetime = db.Column(db.DateTime, nullable=False)
     duration = db.Column(db.Integer, nullable=False)  # duration in minutes
+    location = db.Column(db.String(128), nullable=True)
     status = db.Column(db.String(16), nullable=False, default="scheduled")  # "scheduled", "completed", "cancelled"
     feedback = db.Column(db.Text, nullable=True)
 
