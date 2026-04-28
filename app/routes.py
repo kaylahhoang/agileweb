@@ -2,7 +2,7 @@ from flask import jsonify, render_template, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from app.models import User
-from app.forms import LoginForm, RegisterForm
+from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 
 
 @app.route('/')
@@ -15,7 +15,7 @@ def login():
         user = User.query.filter_by(username=login_form.username.data).first()
         if user and user.check_password(login_form.password.data):
             login_user(user)
-            return redirect(url_for('login'))  # replace with dashboard route later
+            return redirect(url_for('tutors'))  # replace with dashboard route later
         flash('Invalid username or password', 'login_error')
 
     return render_template('login.html', login_form=login_form, register_form=register_form)
@@ -44,6 +44,20 @@ def register():
             return redirect(url_for('login'))
 
     return render_template('login.html', login_form=login_form, register_form=register_form, show_register=True)
+
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        flash('If that email is registered, you will receive reset instructions shortly.', 'success')
+        return redirect(url_for('forgot_password'))
+    return render_template('forgotpassword.html', form=form)
+
+
+@app.route('/tutors')
+def tutors():
+    return render_template('tutors.html')
 
 
 @app.route('/api/logout', methods=['POST'])

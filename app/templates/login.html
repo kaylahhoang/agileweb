@@ -9,7 +9,7 @@
 
 <div class="wrapper" id="wrapper">
 
-    <!-- Screen 1: Login -->
+
     <section class="screen split">
         <div class="half blue">
             <form method="POST" action="/login">
@@ -79,7 +79,6 @@
         </div>
     </section>
 
-    <!-- Screen 2: Register -->
     <section class="screen split">
         <div class="half white">
             <div class="side-panel-content">
@@ -167,7 +166,7 @@
         });
 
         // if the register form had validation errors, slide to show it
-        {% if show_register|default(false) %}
+        {% if show_register %}
         wrapper.style.transform = 'translateX(-100vw)';
         {% endif %}
 
