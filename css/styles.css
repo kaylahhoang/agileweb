@@ -812,3 +812,50 @@ body.login-body {
             padding: 10px;
             border-radius: 8px;
 }
+
+/* tutor detail page */
+.tutor-detail-content {
+        padding: 40px;
+    }
+
+    .tutor-profile-card,
+    .reviews-card {
+        border: none;
+        border-radius: 12px;
+        background-color: #ffffff;
+        min-height: 100%;
+    }
+
+    .tutor-detail-img {
+        width: 100%;
+        height: 260px;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .review-item {
+        background-color: #fdfdfd;
+    }
+
+    .review-item p {
+        margin-bottom: 6px;
+    }
+
+    .review-item strong {
+        font-size: 1rem;
+    }
+
+    .reviews-card {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tutor-profile-card h2 {
+        font-size: 2rem;
+    }
+
+    .tutor-profile-card h4,
+    .reviews-card h3 {
+        font-weight: 600;
+    }
+
