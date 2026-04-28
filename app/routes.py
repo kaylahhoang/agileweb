@@ -109,7 +109,7 @@ def logout():
 def me():
     return jsonify(current_user.to_dict()), 200
 
-@app.route('/schedule')
+@app.route('/bookings')
 @login_required
 def schedule():
     if current_user.role == 'tutor':
