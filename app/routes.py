@@ -1,8 +1,45 @@
-from flask import jsonify, render_template, redirect, url_for, flash
+from flask import jsonify, render_template, redirect, url_for, flash, request
+from datetime import datetime, timedelta, timezone
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from app.models import User
+from app.models import User, TutorProfile, Session
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
+
+@app.context_processor
+def inject_profile_data():
+    if not current_user.is_authenticated:
+        return {}
+    now = datetime.utcnow()
+    if current_user.role == 'tutor':
+        profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
+        sessions_run = Session.query.filter_by(tutor_id=current_user.id, status='completed').count()
+        upcoming = (Session.query
+                    .filter_by(tutor_id=current_user.id)
+                    .filter(Session.datetime > now, Session.status.in_(['pending', 'confirmed']))
+                    .order_by(Session.datetime)
+                    .limit(3).all())
+        return dict(tutor_profile=profile, sessions_run=sessions_run, upcoming_sessions=upcoming)
+    else:
+        sessions_attended = Session.query.filter_by(student_id=current_user.id, status='completed').count()
+        three_months_ago = now - timedelta(days=90)
+        recent_feedback_sessions = (Session.query
+                                    .filter_by(student_id=current_user.id, status='completed')
+                                    .filter(Session.feedback.isnot(None))
+                                    .filter(Session.datetime >= three_months_ago)
+                                    .order_by(Session.datetime.desc())
+                                    .limit(10).all())
+        upcoming = (Session.query
+                    .filter_by(student_id=current_user.id)
+                    .filter(Session.datetime > now, Session.status.in_(['pending', 'confirmed']))
+                    .order_by(Session.datetime)
+                    .limit(3).all())
+        return dict(
+            sessions_attended=sessions_attended,
+            recent_feedback_sessions=recent_feedback_sessions,
+            upcoming_sessions=upcoming
+        )
+
+
 
 
 @app.route('/')
@@ -59,12 +96,27 @@ def forgot_password():
 def tutors():
     return render_template('tutors.html')
 
+@app.route('/profile/save', methods=['POST'])
+@login_required
+def profile_save():
+    if current_user.role != 'tutor':
+        return jsonify({'error': 'Unauthorized'}), 403
+    about_me = request.json.get('about_me', '')
+    profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
+    if not profile:
+        profile = TutorProfile(tutor_id=current_user.id, about_me=about_me)
+        db.session.add(profile)
+    else:
+        profile.about_me = about_me
+    db.session.commit()
+    return jsonify({'success': True})
 
-@app.route('/api/logout', methods=['POST'])
+
+@app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
     logout_user()
-    return jsonify({'message': 'Logged out'}), 200
+    return redirect(url_for('login'))
 
 
 @app.route('/api/me', methods=['GET'])
