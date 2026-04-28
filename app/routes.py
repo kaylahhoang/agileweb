@@ -123,3 +123,13 @@ def logout():
 @login_required
 def me():
     return jsonify(current_user.to_dict()), 200
+
+@app.route('/schedule')
+@login_required
+def schedule():
+    if current_user.role == 'tutor':
+        sessions = Session.query.filter_by(tutor_id=current_user.id).order_by(Session.datetime).all()
+    else:
+        sessions = Session.query.filter_by(student_id=current_user.id).order_by(Session.datetime).all()
+
+    return render_template('schedule.html', sessions=sessions)
