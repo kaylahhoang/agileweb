@@ -97,6 +97,48 @@ def tutors():
     return render_template('tutors.html')
 
 
+@app.route('/tutor/<int:tutor_id>')
+def tutor_detail(tutor_id):
+
+    tutors_data = [
+        {
+            "id": 1,
+            "name": "John Doe",
+            "subject": "Mathematics",
+            "rating": 4.8,
+            "availability": "Mon - Fri, 9am - 5pm",
+            "about": "I am an experienced mathematics tutor...",
+            "subjects": ["Mathematics", "Algebra", "Calculus", "Statistics"],
+            "reviews": [
+                {"name": "Alice", "rating": 5, "comment": "Great tutor", "time": "2 weeks ago"},
+                {"name": "Bob", "rating": 4, "comment": "Helpful", "time": "1 month ago"}
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Jane Smith",
+            "subject": "English",
+            "rating": 4.6,
+            "availability": "Weekends",
+            "about": "I teach English...",
+            "subjects": ["English", "Writing"],
+            "reviews": [
+                {"name": "Tom", "rating": 5, "comment": "Excellent!", "time": "3 weeks ago"}
+            ]
+        }
+    ]
+
+    tutor = None
+
+    for t in tutors_data:
+        if t["id"] == tutor_id:
+            tutor = t
+            break
+    if tutor is None:
+        return "Tutor not found", 404
+
+    return render_template('tutor_detail_page.html', tutor=tutor)
+
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
