@@ -162,9 +162,21 @@ def schedule():
     month = request.args.get('month', today.month, type=int)
 
     if current_user.role == 'tutor':
-        sessions = Session.query.filter_by(tutor_id=current_user.id).order_by(Session.datetime).all()
+        sessions = (
+            Session.query
+            .filter_by(tutor_id=current_user.id)
+            .filter(Session.status != 'cancelled')
+            .order_by(Session.datetime)
+            .all()
+        )
     else:
-        sessions = Session.query.filter_by(student_id=current_user.id).order_by(Session.datetime).all()
+        sessions = (
+            Session.query
+            .filter_by(student_id=current_user.id)
+            .filter(Session.status != 'cancelled')
+            .order_by(Session.datetime)
+            .all()
+        )
 
     month_sessions = [
         session for session in sessions
@@ -199,8 +211,16 @@ def schedule():
     today_month = today.month
     today_year = today.year
 
-    print("TODAY:", today_day, today_month, today_year)
-    print("VIEWING:", month, year)
+    week_sessions = [
+        s for s in sessions
+        if s.datetime.isocalendar()[1] == today.isocalendar()[1]
+        and s.datetime.year == today.year
+    ]
+
+    day_sessions = [
+        s for s in sessions
+        if s.datetime.date() == today.date()
+    ]
 
     return render_template(
         'schedule.html',
@@ -217,6 +237,9 @@ def schedule():
         today_day=today_day,
         today_month=today_month,
         today_year=today_year,
+
+        week_sessions=week_sessions,
+        day_sessions=day_sessions,
     )
 
 @app.route('/book-session', methods=['POST'])
@@ -239,6 +262,23 @@ def book_session():
 
     session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
     duration = int(duration)
+    session_end = session_datetime + timedelta(minutes=duration)
+
+    existing_sessions = Session.query.filter(
+        Session.status != 'cancelled',
+        db.or_(
+            Session.tutor_id == int(tutor_id),
+            Session.student_id == current_user.id
+        )
+    ).all()
+
+    for existing in existing_sessions:
+        existing_start = existing.datetime
+        existing_end = existing.datetime + timedelta(minutes=existing.duration)
+
+        if session_datetime < existing_end and session_end > existing_start:
+            flash('This time conflicts with an existing booking.', 'error')
+            return redirect(url_for('schedule'))
 
     new_session = Session(
         student_id=current_user.id,
@@ -254,4 +294,19 @@ def book_session():
     db.session.commit()
 
     flash('Booking created successfully.', 'success')
+    return redirect(url_for('schedule'))
+
+@app.route('/cancel-booking/<int:session_id>', methods=['POST'])
+@login_required
+def cancel_booking(session_id):
+    session = Session.query.get_or_404(session_id)
+
+    if current_user.id != session.student_id and current_user.id != session.tutor_id:
+        flash('You are not allowed to cancel this booking.', 'error')
+        return redirect(url_for('schedule'))
+
+    session.status = 'cancelled'
+    db.session.commit()
+
+    flash('Booking cancelled successfully.', 'success')
     return redirect(url_for('schedule'))
