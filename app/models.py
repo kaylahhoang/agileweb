@@ -40,9 +40,22 @@ class TutorProfile(db.Model):
     tutor_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     about_me = db.Column(db.Text, nullable=True)
     subjects = db.Column(db.String(256), nullable=True)  # comma-separated list of subjects
-
+    availability = db.Column(db.String(256), nullable=True)  # e.g. "Mon 2-4pm, Wed 10am-12pm"
     tutor = db.relationship('User', backref=db.backref('tutor_profile', uselist=False))
-    
+
+
+class Review(db.Model):
+    __tablename__ = "reviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tutor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rating = db.Column(db.Float, nullable=False)  # e.g. 4.5
+    comment = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    tutor = db.relationship('User', foreign_keys=[tutor_id], backref='reviews_received')
+    student = db.relationship('User', foreign_keys=[student_id], backref='reviews_given')
 
 class Session(db.Model):
     __tablename__ = "sessions"

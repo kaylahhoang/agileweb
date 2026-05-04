@@ -1,8 +1,8 @@
-from flask import jsonify, render_template, redirect, url_for, flash
+from flask import jsonify, render_template, redirect, url_for, flash, request, abort
 from datetime import datetime, timedelta, timezone
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from app.models import User, TutorProfile, Session
+from app.models import User, TutorProfile, Session, Review
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 
 @app.context_processor
@@ -100,44 +100,40 @@ def tutors():
 @app.route('/tutor/<int:tutor_id>')
 def tutor_detail(tutor_id):
 
-    tutors_data = [
-        {
-            "id": 1,
-            "name": "John Doe",
-            "subject": "Mathematics",
-            "rating": 4.8,
-            "availability": "Mon - Fri, 9am - 5pm",
-            "about": "I am an experienced mathematics tutor...",
-            "subjects": ["Mathematics", "Algebra", "Calculus", "Statistics"],
-            "reviews": [
-                {"name": "Alice", "rating": 5, "comment": "Great tutor", "time": "2 weeks ago"},
-                {"name": "Bob", "rating": 4, "comment": "Helpful", "time": "1 month ago"}
-            ]
-        },
-        {
-            "id": 2,
-            "name": "Jane Smith",
-            "subject": "English",
-            "rating": 4.6,
-            "availability": "Weekends",
-            "about": "I teach English...",
-            "subjects": ["English", "Writing"],
-            "reviews": [
-                {"name": "Tom", "rating": 5, "comment": "Excellent!", "time": "3 weeks ago"}
-            ]
-        }
-    ]
+    tutor = User.query.get_or_404(tutor_id)
+    if tutor.role != 'tutor':
+        abort(404)
+    profile = TutorProfile.query.filter_by(tutor_id=tutor_id).first()
+    reviews = Review.query.filter_by(tutor_id=tutor_id).order_by(Review.created_at.desc()).all()
+    raw = db.session.query(db.func.avg(Review.rating)).filter_by(tutor_id=tutor_id).scalar()
+    avg_rating = round(raw, 2) if raw else None
+    subjects = [s.strip() for s in profile.subjects.split(',')] if profile and profile.subjects else []
 
-    tutor = None
+    return render_template('Tutor_detail_page.html', 
+                           tutor=tutor, 
+                           profile=profile, 
+                           reviews=reviews, 
+                           avg_rating=avg_rating, 
+                           subjects=subjects)
 
-    for t in tutors_data:
-        if t["id"] == tutor_id:
-            tutor = t
-            break
-    if tutor is None:
-        return "Tutor not found", 404
+@app.route('/tutor/<int:tutor_id>/review', methods=['POST'])
+@login_required
+def submit_review(tutor_id):
+    rating = request.form.get('rating', type=float)
+    comment = request.form.get('comment', '').strip()
 
-    return render_template('tutor_detail_page.html', tutor=tutor)
+    review = Review(
+        tutor_id=tutor_id,
+        student_id=current_user.id,
+        rating=rating,
+        comment=comment
+    )
+
+    db.session.add(review)
+    db.session.commit()
+
+    flash('Review submitted successfully!', 'success')
+    return redirect(url_for('tutor_detail', tutor_id=tutor_id))
 
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required

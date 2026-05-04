@@ -1,17 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ tutor.name}} Profile</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/agileweb/css/styles.css">
 
-</head>
-<body data-title="Tutor Profile">
     {% extends "base.html" %}
 
-    {% block title %}{{ tutor.name }} Profile{% endblock %}
+    {% block title %}{{ tutor.username }} Profile{% endblock %}
     {% block page_title %}Tutor Profile{% endblock %}
 
     {% block content %}
@@ -32,21 +22,21 @@
                     <img
                         src="https://images.pexels.com/photos/5212345/pexels-photo-5212345.jpeg"
                         class="card-img-top tutor-detail-img mb-3"
-                        alt="{{ tutor.name }}photo"
+                        alt="{{ tutor.username }} photo"
                     >
 
-                    <h2 class="mb-1">{{tutor.name}}</h2>
+                    <h2 class="mb-1">{{tutor.username}}</h2>
 
                     <p class="text-muted mb-2">
-                        {{tutor.subject}}Tutor
+                        {{subjects[0] if subjects else ''}} Tutor
                     </p>
 
                     <p class="mb-2">
-                        ⭐ {{tutor.rating}} / 5
+                        ⭐ {{ avg_rating if avg_rating else 'No ratings yet' }}{{ ' / 5' if avg_rating else '' }}
                     </p>
 
                     <p class="mb-3">
-                        Available: {{tutor.availability}}
+                        Available: {{profile.availability if profile and profile.availability else 'Not specified'}}
                     </p>
 
                     <hr>
@@ -54,13 +44,13 @@
                     <h4>About Me</h4>
 
                     <p>
-                        {{tutor.about}}
+                        {{profile.about_me if profile and profile.about_me else 'No description yet.'}}
                     </p>
 
                     <h5 class="mt-4">Subjects</h5>
 
                     <ul class="mb-0">
-                        {% for subject in tutor.subjects %}
+                        {% for subject in subjects %}
                             <li>{{ subject }}</li>
                         {% endfor %}
                     </ul>
@@ -75,10 +65,10 @@
                     <h3 class="mb-4">Reviews</h3>
 
                     <!-- Review -->
-                    {% for review in tutor.reviews %}
+                    {% for review in reviews %}
                     <div class="review-item border rounded p-3 mb-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <strong>{{review.name}}</strong>
+                            <strong>{{review.student.username}}</strong>
                             <span>{{review.rating}}/5</span>
                         </div>
 
@@ -90,7 +80,7 @@
                             {{review.comment}}
                         </p>
 
-                        <small class="text-muted">{{review.time}}</small>
+                        <small class="text-muted">{{review.created_at.strftime('%d %b %Y') }}</small>
                     </div>
                     {% endfor %}
                     <!-- Leave review button -->
@@ -133,7 +123,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <form id="reviewForm">
+                    <form id="reviewForm" action ="{{ url_for('submit_review', tutor_id=tutor.id) }}" method="POST">
 
                         <div class="mb-3">
                             <label for="reviewName" class="form-label">
@@ -144,7 +134,8 @@
                                 type="text"
                                 class="form-control"
                                 id="reviewName"
-                                placeholder="Enter your name"
+                                value = "{{current_user.username}}"
+                                readonly
                             >
                         </div>
 
@@ -153,7 +144,7 @@
                                 Rating
                             </label>
 
-                            <select class="form-select" id="reviewRating">
+                            <select class="form-select" id="reviewRating" name="rating">
                                 <option value="5">5 / 5</option>
                                 <option value="4">4 / 5</option>
                                 <option value="3">3 / 5</option>
@@ -170,6 +161,7 @@
                             <textarea
                                 class="form-control"
                                 id="reviewText"
+                                name="comment"
                                 rows="4"
                                 placeholder="Write your review here"
                             ></textarea>
@@ -188,7 +180,8 @@
                     </button>
 
                     <button
-                        type="button"
+                        type="submit"
+                        form="reviewForm"
                         class="btn btn-primary"
                     >
                         Submit Review
@@ -200,9 +193,4 @@
     </div>
     {% endblock %}
 
-    <!-- Bootstrap JS -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-    </script>
-</body>
-</html>
+ 
