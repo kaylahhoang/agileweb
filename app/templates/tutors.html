@@ -1,82 +1,70 @@
 {% extends "base.html" %}
-
 {% block title %}Tutors{% endblock %}
 {% block page_title %}Our Tutors{% endblock %}
 
 {% block content %}
+
+{% if current_user.role == 'tutor' and not my_profile %}
+<div class="mb-4">
+    <form action="{{ url_for('list_tutor') }}" method="POST" style="display:inline">
+        <button type="submit" class="btn btn-primary">+ List Yourself as a Tutor</button>
+    </form>
+</div>
+{% endif %}
+
 <div class="tutor-container">
 
+    {% for profile in profiles %}
+    {% set tutor = profile.tutor %}
     <div class="tutor-card">
-        <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-        <h3>John Doe</h3>
-        <p>Mathematics Tutor</p>
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('tutor_detail', tutor_id=1) }}" class="btn btn-secondary">
-                    About Me
-            </a>
-            <button type="button" class="btn btn-secondary">Leave a review</button>
-        </div>
-    </div>
 
-    <div class="tutor-card">
-        <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-        <h3>Jane Smith</h3>
-        <p>English Tutor</p>
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('tutor_detail', tutor_id=2) }}" class="btn btn-secondary">
-                    About Me
-            </a>
-            <button type="button" class="btn btn-secondary">Leave a review</button>
-        </div>
-    </div>
+        <img
+        src="{% if profile.profile_picture %}{{ url_for('uploaded_file', filename=profile.profile_picture) }}{% else %}https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg{% endif %}"
+        alt="{{ tutor.username }} photo"
+        class="tutor-photo"
+        >
 
-    <div class="tutor-card">
-        <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-        <h3>John Doe</h3>
-        <p>Mathematics Tutor</p>
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('tutor_detail', tutor_id=1) }}" class="btn btn-secondary">
-                    About Me
-            </a>
-            <button type="button" class="btn btn-secondary">Leave a review</button>
-        </div>
-    </div>
+        <h3>{{ tutor.username }}</h3>
 
-    <div class="tutor-card">
-        <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-        <h3>Jane Smith</h3>
-        <p>English Tutor</p>
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('tutor_detail', tutor_id=2) }}" class="btn btn-secondary">
-                    About Me
-            </a>
-            <button type="button" class="btn btn-secondary">Leave a review</button>
-        </div>
-    </div>
+        <p> {{ profile.subjects.split(',')[0].strip() if profile and profile.subjects else 'Tutor' }}</p>
 
-    <div class="tutor-card">
-        <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-        <h3>John Doe</h3>
-        <p>Mathematics Tutor</p>
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('tutor_detail', tutor_id=1) }}" class="btn btn-secondary">
-                    About Me
-            </a>
-            <button type="button" class="btn btn-secondary">Leave a review</button>
-        </div>
-    </div>
+        {% set rating = avg_ratings.get(tutor.id) %}
+        {% if rating %}
+        <p>⭐ {{ rating }} / 5</p>
+        {% endif %}
 
-    <div class="tutor-card">
-        <img src="https://airtasker-seo-assets-prod.s3.amazonaws.com/en_AU/1754904368566-tutor-and-student.jpg" alt="Tutor Photo" class="tutor-photo">
-        <h3>Jane Smith</h3>
-        <p>English Tutor</p>
         <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('tutor_detail', tutor_id=2) }}" class="btn btn-secondary">
-                    About Me
+
+            <a href="{{ url_for('tutor_detail', tutor_id=tutor.id) }}" class="btn btn-secondary">
+                About Me
             </a>
-            <button type="button" class="btn btn-secondary">Leave a review</button>
+
+            {% if current_user.role == 'student' %}
+            <a href="{{ url_for('tutor_detail', tutor_id=tutor.id) }}" class="btn btn-secondary">
+                Leave a Review
+            </a>
+            {% endif %}
+
+            {% if current_user.role == 'tutor' and current_user.id == tutor.id %}
+            <a href="{{ url_for('tutor_detail', tutor_id=tutor.id) }}" class="btn btn-secondary">
+                Edit Profile
+            </a>
+            <form action="{{ url_for('unlist_tutor') }}" method="POST" style="display:inline">
+                <button
+                    type="submit"
+                    class="btn btn-danger"
+                    onclick="return confirm('Remove your listing from the tutors page?')"
+                >
+                    Remove Listing
+                </button>
+            </form>
+            {% endif %}
+
         </div>
     </div>
+    {% else %}
+    <p class="text-muted mt-3">No tutors are listed yet.</p>
+    {% endfor %}
 
 </div>
 {% endblock %}
