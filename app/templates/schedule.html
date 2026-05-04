@@ -45,7 +45,7 @@
                     {% if day == 0 %}
                         <div class="calendar-day empty"></div>
                     {% else %}
-                        <div class="calendar-day">
+                        <div class="calendar-day {% if day == today_day and month == today_month and year == today_year %}today{% endif %}">
                             <p class="day-number">{{ day }}</p>
 
                             {% for session in sessions_by_day.get(day, []) %}

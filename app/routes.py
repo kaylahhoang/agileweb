@@ -195,6 +195,13 @@ def schedule():
 
     month_name = calendar.month_name[month]
 
+    today_day = today.day
+    today_month = today.month
+    today_year = today.year
+
+    print("TODAY:", today_day, today_month, today_year)
+    print("VIEWING:", month, year)
+
     return render_template(
         'schedule.html',
         sessions=sessions,
@@ -206,5 +213,8 @@ def schedule():
         prev_month=prev_month,
         prev_year=prev_year,
         next_month=next_month,
-        next_year=next_year
+        next_year=next_year,
+        today_day=today_day,
+        today_month=today_month,
+        today_year=today_year,
     )
