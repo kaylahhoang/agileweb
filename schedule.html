@@ -21,12 +21,18 @@
                         <button class="view-btn" id="dailyBtn" onclick="switchView('daily')">Daily</button>
 </div>
                 </div>
+                
+                <a class="btn btn-outline-secondary btn-sm"
+                href="{{ url_for('schedule', year=prev_year, month=prev_month) }}">
+                Previous
+                </a>
 
-                <div class="date-nav">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="changeDate(-1)">Previous</button>
-                    <h4 id="dateTitle">April 2025</h4>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="changeDate(1)">Next</button>
-                </div>
+                <h4 id="dateTitle">{{ month_name }} {{ year }}</h4>
+
+                <a class="btn btn-outline-secondary btn-sm"
+                href="{{ url_for('schedule', year=next_year, month=next_month) }}">
+                Next
+                </a>
 
                 <!-- Monthly View -->
                 <div id="monthlyView">
@@ -39,147 +45,30 @@
                         <div class="calendar-header">Fri</div>
                         <div class="calendar-header">Sat</div>
 
-                        <div class="calendar-day empty"></div>
-                        <div class="calendar-day empty"></div>
-                        <div class="calendar-day empty"></div>
+                        {% for week in calendar_weeks %}
+                            {% for day in week %}
+                                {% if day == 0 %}
+                                    <div class="calendar-day empty"></div>
+                                {% else %}
+                                    <div class="calendar-day">
+                                        <p class="day-number">{{ day }}</p>
 
-                        <div class="calendar-day">
-                            <p class="day-number">1</p>
-                            
-                            {% for session in sessions %}
-                                <div class="class-pill math"
-                                    onclick="showDetails(
-                                        '{{ session.subject }}',
-                                        '{{ session.datetime.strftime("%d %b %Y, %I:%M %p") }}',
-                                        '{{ session.tutor.username }}',
-                                        '{{ session.location or "No location set" }}',
-                                        '{{ session.status }}'
-                                    )">
-                                    {{ session.subject }}
-                                </div>
-                            {% else %}
-                                <p class="text-muted small">No sessions</p>
+                                        {% for session in sessions_by_day.get(day, []) %}
+                                            <div class="class-pill math"
+                                                onclick="showDetails(
+                                                    '{{ session.subject }}',
+                                                    '{{ session.datetime.strftime("%d %b %Y, %I:%M %p") }}',
+                                                    '{{ session.tutor.username }}',
+                                                    '{{ session.location or "No location set" }}',
+                                                    '{{ session.status }}'
+                                                )">
+                                                {{ session.subject }}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             {% endfor %}
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">2</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">3</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">4</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">5</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">6</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">7</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">8</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">9</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">10</p>
-                        </div>
-
-                        <div class="calendar-day today">
-                            <p class="day-number">11</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">12</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">13</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">14</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">15</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">16</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">17</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">18</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">19</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">20</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">21</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">22</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">23</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">24</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">25</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">26</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">27</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">28</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">29</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">30</p>
-                        </div>
-
-                        <div class="calendar-day empty"></div>
-                        <div class="calendar-day empty"></div>
+                        {% endfor %}
                     </div>
                 </div>
 
@@ -300,10 +189,6 @@
             }
 
             currentView = view;
-        }
-
-        function changeDate(direction) {
-            console.log("Change date:", direction);
         }
 
         function showDetails(name, time, tutor, location, status) {
