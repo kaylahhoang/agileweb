@@ -1,13 +1,19 @@
+<<<<<<< HEAD
 import os
 import json
 import uuid
 from flask import jsonify, render_template, redirect, url_for, flash, request, abort, send_from_directory
+=======
+from flask import jsonify, render_template, redirect, url_for, flash, request
+>>>>>>> main
 from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from app.models import User, TutorProfile, Session, Review
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
+import calendar
+from datetime import datetime, timedelta, timezone
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'tutor_photos')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -239,9 +245,157 @@ def me():
 @app.route('/bookings')
 @login_required
 def schedule():
-    if current_user.role == 'tutor':
-        sessions = Session.query.filter_by(tutor_id=current_user.id).order_by(Session.datetime).all()
-    else:
-        sessions = Session.query.filter_by(student_id=current_user.id).order_by(Session.datetime).all()
+    today = datetime.today()
 
-    return render_template('schedule.html', sessions=sessions)
+    year = request.args.get('year', today.year, type=int)
+    month = request.args.get('month', today.month, type=int)
+
+    if current_user.role == 'tutor':
+        sessions = (
+            Session.query
+            .filter_by(tutor_id=current_user.id)
+            .filter(Session.status != 'cancelled')
+            .order_by(Session.datetime)
+            .all()
+        )
+    else:
+        sessions = (
+            Session.query
+            .filter_by(student_id=current_user.id)
+            .filter(Session.status != 'cancelled')
+            .order_by(Session.datetime)
+            .all()
+        )
+
+    month_sessions = [
+        session for session in sessions
+        if session.datetime.year == year and session.datetime.month == month
+    ]
+
+    sessions_by_day = {}
+    for session in month_sessions:
+        day = session.datetime.day
+        if day not in sessions_by_day:
+            sessions_by_day[day] = []
+        sessions_by_day[day].append(session)
+
+    cal = calendar.Calendar(firstweekday=6)  # Sunday start
+    calendar_weeks = cal.monthdayscalendar(year, month)
+
+    prev_month = month - 1
+    prev_year = year
+    if prev_month == 0:
+        prev_month = 12
+        prev_year -= 1
+
+    next_month = month + 1
+    next_year = year
+    if next_month == 13:
+        next_month = 1
+        next_year += 1
+
+    month_name = calendar.month_name[month]
+
+    today_day = today.day
+    today_month = today.month
+    today_year = today.year
+
+    week_sessions = [
+        s for s in sessions
+        if s.datetime.isocalendar()[1] == today.isocalendar()[1]
+        and s.datetime.year == today.year
+    ]
+
+    day_sessions = [
+        s for s in sessions
+        if s.datetime.date() == today.date()
+    ]
+
+    return render_template(
+        'schedule.html',
+        sessions=sessions,
+        sessions_by_day=sessions_by_day,
+        calendar_weeks=calendar_weeks,
+        month_name=month_name,
+        month=month,
+        year=year,
+        prev_month=prev_month,
+        prev_year=prev_year,
+        next_month=next_month,
+        next_year=next_year,
+        today_day=today_day,
+        today_month=today_month,
+        today_year=today_year,
+
+        week_sessions=week_sessions,
+        day_sessions=day_sessions,
+    )
+
+@app.route('/book-session', methods=['POST'])
+@login_required
+def book_session():
+    if current_user.role != 'student':
+        flash('Only students can create bookings.', 'error')
+        return redirect(url_for('schedule'))
+
+    tutor_id = request.form.get('tutor_id')
+    subject = request.form.get('subject')
+    date = request.form.get('date')
+    time = request.form.get('time')
+    duration = request.form.get('duration')
+    location = request.form.get('location')
+
+    if not tutor_id or not subject or not date or not time or not duration:
+        flash('Please fill in all required booking fields.', 'error')
+        return redirect(url_for('schedule'))
+
+    session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
+    duration = int(duration)
+    session_end = session_datetime + timedelta(minutes=duration)
+
+    existing_sessions = Session.query.filter(
+        Session.status != 'cancelled',
+        db.or_(
+            Session.tutor_id == int(tutor_id),
+            Session.student_id == current_user.id
+        )
+    ).all()
+
+    for existing in existing_sessions:
+        existing_start = existing.datetime
+        existing_end = existing.datetime + timedelta(minutes=existing.duration)
+
+        if session_datetime < existing_end and session_end > existing_start:
+            flash('This time conflicts with an existing booking.', 'error')
+            return redirect(url_for('schedule'))
+
+    new_session = Session(
+        student_id=current_user.id,
+        tutor_id=int(tutor_id),
+        subject=subject,
+        datetime=session_datetime,
+        duration=duration,
+        location=location,
+        status='scheduled'
+    )
+
+    db.session.add(new_session)
+    db.session.commit()
+
+    flash('Booking created successfully.', 'success')
+    return redirect(url_for('schedule'))
+
+@app.route('/cancel-booking/<int:session_id>', methods=['POST'])
+@login_required
+def cancel_booking(session_id):
+    session = Session.query.get_or_404(session_id)
+
+    if current_user.id != session.student_id and current_user.id != session.tutor_id:
+        flash('You are not allowed to cancel this booking.', 'error')
+        return redirect(url_for('schedule'))
+
+    session.status = 'cancelled'
+    db.session.commit()
+
+    flash('Booking cancelled successfully.', 'success')
+    return redirect(url_for('schedule'))
