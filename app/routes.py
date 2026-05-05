@@ -218,3 +218,40 @@ def schedule():
         today_month=today_month,
         today_year=today_year,
     )
+
+@app.route('/book-session', methods=['POST'])
+@login_required
+def book_session():
+    if current_user.role != 'student':
+        flash('Only students can create bookings.', 'error')
+        return redirect(url_for('schedule'))
+
+    tutor_id = request.form.get('tutor_id')
+    subject = request.form.get('subject')
+    date = request.form.get('date')
+    time = request.form.get('time')
+    duration = request.form.get('duration')
+    location = request.form.get('location')
+
+    if not tutor_id or not subject or not date or not time or not duration:
+        flash('Please fill in all required booking fields.', 'error')
+        return redirect(url_for('schedule'))
+
+    session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
+    duration = int(duration)
+
+    new_session = Session(
+        student_id=current_user.id,
+        tutor_id=int(tutor_id),
+        subject=subject,
+        datetime=session_datetime,
+        duration=duration,
+        location=location,
+        status='scheduled'
+    )
+
+    db.session.add(new_session)
+    db.session.commit()
+
+    flash('Booking created successfully.', 'success')
+    return redirect(url_for('schedule'))

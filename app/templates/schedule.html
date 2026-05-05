@@ -69,7 +69,7 @@
 
     <div id="weeklyView" style="display: none;">
         <div class="weekly-list">
-            {% for session in sessions %}
+            {% for session in week_sessions %}
                 <div class="week-class math"
                      onclick="showDetails(
                         '{{ session.subject }}',
@@ -97,7 +97,7 @@
 
     <div id="dailyView" style="display: none;">
         <div class="daily-list">
-            {% for session in sessions %}
+            {% for session in day_sessions %}
                 <div class="daily-class math"
                      onclick="showDetails(
                         '{{ session.subject }}',
