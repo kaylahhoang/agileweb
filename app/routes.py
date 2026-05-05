@@ -1,9 +1,11 @@
-from flask import jsonify, render_template, redirect, url_for, flash
+from flask import jsonify, render_template, redirect, url_for, flash, request
 from datetime import datetime, timedelta, timezone
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from app.models import User, TutorProfile, Session
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
+import calendar
+from datetime import datetime, timedelta, timezone
 
 @app.context_processor
 def inject_profile_data():
@@ -154,9 +156,65 @@ def me():
 @app.route('/bookings')
 @login_required
 def schedule():
+    today = datetime.today()
+
+    year = request.args.get('year', today.year, type=int)
+    month = request.args.get('month', today.month, type=int)
+
     if current_user.role == 'tutor':
         sessions = Session.query.filter_by(tutor_id=current_user.id).order_by(Session.datetime).all()
     else:
         sessions = Session.query.filter_by(student_id=current_user.id).order_by(Session.datetime).all()
 
-    return render_template('schedule.html', sessions=sessions)
+    month_sessions = [
+        session for session in sessions
+        if session.datetime.year == year and session.datetime.month == month
+    ]
+
+    sessions_by_day = {}
+    for session in month_sessions:
+        day = session.datetime.day
+        if day not in sessions_by_day:
+            sessions_by_day[day] = []
+        sessions_by_day[day].append(session)
+
+    cal = calendar.Calendar(firstweekday=6)  # Sunday start
+    calendar_weeks = cal.monthdayscalendar(year, month)
+
+    prev_month = month - 1
+    prev_year = year
+    if prev_month == 0:
+        prev_month = 12
+        prev_year -= 1
+
+    next_month = month + 1
+    next_year = year
+    if next_month == 13:
+        next_month = 1
+        next_year += 1
+
+    month_name = calendar.month_name[month]
+
+    today_day = today.day
+    today_month = today.month
+    today_year = today.year
+
+    print("TODAY:", today_day, today_month, today_year)
+    print("VIEWING:", month, year)
+
+    return render_template(
+        'schedule.html',
+        sessions=sessions,
+        sessions_by_day=sessions_by_day,
+        calendar_weeks=calendar_weeks,
+        month_name=month_name,
+        month=month,
+        year=year,
+        prev_month=prev_month,
+        prev_year=prev_year,
+        next_month=next_month,
+        next_year=next_year,
+        today_day=today_day,
+        today_month=today_month,
+        today_year=today_year,
+    )

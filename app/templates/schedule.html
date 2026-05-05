@@ -1,316 +1,159 @@
 {% extends "base.html" %}
 
 {% block title %}Schedule page{% endblock %}
-{% block page_title %} Schedule Bookings {% endblock %}
+{% block page_title %}Schedule Bookings{% endblock %}
 
 {% block content %}
 
-    <div class="main-card">
-            <div class="top-row">
-                    <h2>Class Schedule</h2>
+<div class="main-card">
+    <div class="top-row">
+        <h2>Session Schedule</h2>
 
-                <div class="view-buttons">
-                    <button class="view-btn active" id="monthlyBtn" onclick="switchView('monthly')">Monthly</button>
-                    <button class="view-btn" id="weeklyBtn" onclick="switchView('weekly')">Weekly</button>
-                    <button class="view-btn" id="dailyBtn" onclick="switchView('daily')">Daily</button>
+        <div class="view-buttons">
+            <button class="view-btn active" id="monthlyBtn" onclick="switchView('monthly')">Monthly</button>
+            <button class="view-btn" id="weeklyBtn" onclick="switchView('weekly')">Weekly</button>
+            <button class="view-btn" id="dailyBtn" onclick="switchView('daily')">Daily</button>
+        </div>
     </div>
-</div>
 
-                <div class="date-nav">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="changeDate(-1)">Previous</button>
-                    <h4 id="dateTitle">April 2025</h4>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="changeDate(1)">Next</button>
-                </div>
+    <div class="date-nav">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{{ url_for('schedule', year=prev_year, month=prev_month) }}">
+            Previous
+        </a>
 
-                <!-- Monthly View -->
-                <div id="monthlyView">
-                    <div class="calendar-grid">
-                        <div class="calendar-header">Sun</div>
-                        <div class="calendar-header">Mon</div>
-                        <div class="calendar-header">Tue</div>
-                        <div class="calendar-header">Wed</div>
-                        <div class="calendar-header">Thu</div>
-                        <div class="calendar-header">Fri</div>
-                        <div class="calendar-header">Sat</div>
+        <h4 id="dateTitle">{{ month_name }} {{ year }}</h4>
 
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{{ url_for('schedule', year=next_year, month=next_month) }}">
+            Next
+        </a>
+    </div>
+
+    <div id="monthlyView">
+        <div class="calendar-grid">
+            <div class="calendar-header">Sun</div>
+            <div class="calendar-header">Mon</div>
+            <div class="calendar-header">Tue</div>
+            <div class="calendar-header">Wed</div>
+            <div class="calendar-header">Thu</div>
+            <div class="calendar-header">Fri</div>
+            <div class="calendar-header">Sat</div>
+
+            {% for week in calendar_weeks %}
+                {% for day in week %}
+                    {% if day == 0 %}
                         <div class="calendar-day empty"></div>
-                        <div class="calendar-day empty"></div>
-                        <div class="calendar-day empty"></div>
+                    {% else %}
+                        <div class="calendar-day {% if day == today_day and month == today_month and year == today_year %}today{% endif %}">
+                            <p class="day-number">{{ day }}</p>
 
-                        <div class="calendar-day">
-                            <p class="day-number">1</p>
-                            
-                            {% for session in sessions %}
+                            {% for session in sessions_by_day.get(day, []) %}
                                 <div class="class-pill math"
-                                    onclick="showDetails(
+                                     onclick="showDetails(
                                         '{{ session.subject }}',
                                         '{{ session.datetime.strftime("%d %b %Y, %I:%M %p") }}',
                                         '{{ session.tutor.username }}',
                                         '{{ session.location or "No location set" }}',
                                         '{{ session.status }}'
-                                    )">
+                                     )">
                                     {{ session.subject }}
                                 </div>
-                            {% else %}
-                                <p class="text-muted small">No sessions</p>
                             {% endfor %}
                         </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">2</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">3</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">4</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">5</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">6</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">7</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">8</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">9</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">10</p>
-                        </div>
-
-                        <div class="calendar-day today">
-                            <p class="day-number">11</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">12</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">13</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">14</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">15</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">16</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">17</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">18</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">19</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">20</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">21</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">22</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">23</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">24</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">25</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">26</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">27</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">28</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">29</p>
-                        </div>
-
-                        <div class="calendar-day">
-                            <p class="day-number">30</p>
-                        </div>
-
-                        <div class="calendar-day empty"></div>
-                        <div class="calendar-day empty"></div>
-                    </div>
-                </div>
-
-                <!-- Weekly View -->
-                <div id="weeklyView" style="display: none;">
-                    <div class="weekly-list">
-                            {% for session in sessions %}
-                                <div class="week-class math"
-                                    onclick="showDetails(
-                                        '{{ session.subject }}',
-                                        '{{ session.datetime.strftime("%A, %d %b %Y, %I:%M %p") }}',
-                                        '{{ session.tutor.username }}',
-                                        '{{ session.location or "No location set" }}',
-                                        '{{ session.status }}'
-                                    )">
-                                    <h5>{{ session.datetime.strftime("%A") }}</h5>
-                                    <p>{{ session.subject }} - {{ session.datetime.strftime("%I:%M %p") }}</p>
-                                    <p>
-                                        {% if current_user.role == 'student' %}
-                                            Tutor: {{ session.tutor.username }}
-                                        {% else %}
-                                            Student: {{ session.student.username }}
-                                        {% endif %}
-                                    </p>
-                                    <p>Status: {{ session.status }}</p>
-                                </div>
-                            {% else %}
-                                <p class="text-muted">No sessions scheduled</p>
-                            {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Daily View -->
-                <div id="dailyView" style="display: none;">
-                    <div class="daily-list">
-                            {% for session in sessions %}
-                                <div class="daily-class math"
-                                    onclick="showDetails(
-                                        '{{ session.subject }}',
-                                        '{{ session.datetime.strftime("%I:%M %p") }}',
-                                        '{{ session.tutor.username }}',
-                                        '{{ session.location or "No location set" }}',
-                                        '{{ session.status }}'
-                                    )">
-                                    <h5>{{ session.datetime.strftime("%I:%M %p") }}</h5>
-                                    <p>{{ session.subject }}</p>
-                                    <p>
-                                        {% if current_user.role == 'student' %}
-                                            Tutor: {{ session.tutor.username }}
-                                        {% else %}
-                                            Student: {{ session.student.username }}
-                                        {% endif %}
-                                    </p>
-                                    <p>Status: {{ session.status }}</p>
-                                </div>
-                            {% else %}
-                                <p class="text-muted">No sessions today</p>
-                            {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Simple Details Box -->
-                <div class="class-details-box mt-4" id="detailsBox">
-                    <h4>Session Details</h4>
-                    <p><strong>Subject:</strong> <span id="className">Select a session</span></p>
-                    <p><strong>Time:</strong> <span id="classTime">-</span></p>
-                    <p><strong>Tutor:</strong> <span id="classTutor">-</span></p>
-                    <p><strong>Location:</strong> <span id="classLocation">-</span></p>
-                    <p><strong>Status:</strong> <span id="classStatus">-</span></p>
-                </div>
-
-            </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
         </div>
+    </div>
 
-    
+    <div id="weeklyView" style="display: none;">
+        <div class="weekly-list">
+            {% for session in sessions %}
+                <div class="week-class math"
+                     onclick="showDetails(
+                        '{{ session.subject }}',
+                        '{{ session.datetime.strftime("%A, %d %b %Y, %I:%M %p") }}',
+                        '{{ session.tutor.username }}',
+                        '{{ session.location or "No location set" }}',
+                        '{{ session.status }}'
+                     )">
+                    <h5>{{ session.datetime.strftime("%A") }}</h5>
+                    <p>{{ session.subject }} - {{ session.datetime.strftime("%I:%M %p") }}</p>
+                    <p>
+                        {% if current_user.role == 'student' %}
+                            Tutor: {{ session.tutor.username }}
+                        {% else %}
+                            Student: {{ session.student.username }}
+                        {% endif %}
+                    </p>
+                    <p>Status: {{ session.status }}</p>
+                </div>
+            {% else %}
+                <p class="text-muted">No sessions scheduled</p>
+            {% endfor %}
+        </div>
+    </div>
 
-    <script>
-        let currentView = "monthly";
+    <div id="dailyView" style="display: none;">
+        <div class="daily-list">
+            {% for session in sessions %}
+                <div class="daily-class math"
+                     onclick="showDetails(
+                        '{{ session.subject }}',
+                        '{{ session.datetime.strftime("%I:%M %p") }}',
+                        '{{ session.tutor.username }}',
+                        '{{ session.location or "No location set" }}',
+                        '{{ session.status }}'
+                     )">
+                    <h5>{{ session.datetime.strftime("%I:%M %p") }}</h5>
+                    <p>{{ session.subject }}</p>
+                    <p>
+                        {% if current_user.role == 'student' %}
+                            Tutor: {{ session.tutor.username }}
+                        {% else %}
+                            Student: {{ session.student.username }}
+                        {% endif %}
+                    </p>
+                    <p>Status: {{ session.status }}</p>
+                </div>
+            {% else %}
+                <p class="text-muted">No sessions today</p>
+            {% endfor %}
+        </div>
+    </div>
 
-        fetch('layout.html')
-        .then(res => res.text())
-        .then(html => {
-            document.getElementById('layout').innerHTML = html;
+    <div class="class-details-box mt-4" id="detailsBox">
+        <h4>Session Details</h4>
+        <p><strong>Subject:</strong> <span id="className">Select a session</span></p>
+        <p><strong>Time:</strong> <span id="classTime">-</span></p>
+        <p><strong>Tutor:</strong> <span id="classTutor">-</span></p>
+        <p><strong>Location:</strong> <span id="classLocation">-</span></p>
+        <p><strong>Status:</strong> <span id="classStatus">-</span></p>
+    </div>
+</div>
 
-            document.getElementById('pageTitle').textContent = document.body.dataset.title;
+<script>
+    function switchView(view) {
+        document.getElementById("monthlyView").style.display = "none";
+        document.getElementById("weeklyView").style.display = "none";
+        document.getElementById("dailyView").style.display = "none";
 
-            // move schedule content into the layout's content slot
-            document.getElementById('pageContent').appendChild(
-                document.querySelector('.main-card')
-            );
+        document.getElementById("monthlyBtn").classList.remove("active");
+        document.getElementById("weeklyBtn").classList.remove("active");
+        document.getElementById("dailyBtn").classList.remove("active");
 
-            document.getElementById('toggleSidebar').addEventListener('click', function () {
-                document.querySelector('.sidebar').classList.toggle('collapsed');
+        document.getElementById(view + "View").style.display = "block";
+        document.getElementById(view + "Btn").classList.add("active");
+    }
 
-            });
-
-            document.body.style.visibility = "visible";
-        });
-        function switchView(view) {
-            document.getElementById("monthlyView").style.display = "none";
-            document.getElementById("weeklyView").style.display = "none";
-            document.getElementById("dailyView").style.display = "none";
-
-            document.getElementById("monthlyBtn").classList.remove("active");
-            document.getElementById("weeklyBtn").classList.remove("active");
-            document.getElementById("dailyBtn").classList.remove("active");
-
-            if (view === "monthly") {
-                document.getElementById("monthlyView").style.display = "block";
-                document.getElementById("monthlyBtn").classList.add("active");
-                document.getElementById("dateTitle").textContent = "April 2025";
-            } else if (view === "weekly") {
-                document.getElementById("weeklyView").style.display = "block";
-                document.getElementById("weeklyBtn").classList.add("active");
-                document.getElementById("dateTitle").textContent = "Week of April 7 - 13, 2025";
-            } else {
-                document.getElementById("dailyView").style.display = "block";
-                document.getElementById("dailyBtn").classList.add("active");
-                document.getElementById("dateTitle").textContent = "Friday, April 11, 2025";
-            }
-
-            currentView = view;
-        }
-
-        function changeDate(direction) {
-            console.log("Change date:", direction);
-        }
-
-        function showDetails(name, time, tutor, location, status) {
-            document.getElementById("className").textContent = name;
-            document.getElementById("classTime").textContent = time;
-            document.getElementById("classTutor").textContent = tutor;
-            document.getElementById("classLocation").textContent = location;
-            document.getElementById("classStatus").textContent = status;
-        }
-    </script>
-
-</body>
+    function showDetails(name, time, tutor, location, status) {
+        document.getElementById("className").textContent = name;
+        document.getElementById("classTime").textContent = time;
+        document.getElementById("classTutor").textContent = tutor;
+        document.getElementById("classLocation").textContent = location;
+        document.getElementById("classStatus").textContent = status;
+    }
+</script>
 
 {% endblock %}
