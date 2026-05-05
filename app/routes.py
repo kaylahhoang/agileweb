@@ -1,11 +1,7 @@
-<<<<<<< HEAD
 import os
 import json
 import uuid
 from flask import jsonify, render_template, redirect, url_for, flash, request, abort, send_from_directory
-=======
-from flask import jsonify, render_template, redirect, url_for, flash, request
->>>>>>> main
 from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
