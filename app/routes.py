@@ -1,11 +1,30 @@
+<<<<<<< HEAD
+import os
+import json
+import uuid
+from flask import jsonify, render_template, redirect, url_for, flash, request, abort, send_from_directory
+=======
 from flask import jsonify, render_template, redirect, url_for, flash, request
+>>>>>>> main
 from datetime import datetime, timedelta, timezone
+from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from app.models import User, TutorProfile, Session
+from app.models import User, TutorProfile, Session, Review
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 import calendar
 from datetime import datetime, timedelta, timezone
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'tutor_photos')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload/tutor_photos/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
 
 @app.context_processor
 def inject_profile_data():
@@ -95,51 +114,121 @@ def forgot_password():
 
 
 @app.route('/tutors')
+@login_required
 def tutors():
-    return render_template('tutors.html')
+    profiles = TutorProfile.query.all()
+    my_profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first() if current_user.role == 'tutor' else None
+    avg_rows = db.session.query(Review.tutor_id, db.func.avg(Review.rating).label('avg')).group_by(Review.tutor_id).all()
+    avg_ratings = {row.tutor_id: round(float(row.avg), 1) for row in avg_rows}
+    return render_template('tutors.html', profiles=profiles, my_profile=my_profile, avg_ratings=avg_ratings)
+
+
+@app.route('/tutor/list', methods=['POST'])
+@login_required
+def list_tutor():
+    if current_user.role != 'tutor':
+        abort(403)
+    if TutorProfile.query.filter_by(tutor_id=current_user.id).first():
+        flash('You already have a listing.', 'warning')
+        return redirect(url_for('tutors'))
+    profile = TutorProfile(tutor_id=current_user.id)
+    db.session.add(profile)
+    db.session.commit()
+    flash('You are now listed! Fill in your profile below.', 'success')
+    return redirect(url_for('tutor_detail', tutor_id=current_user.id))
+
+
+@app.route('/tutor/unlist', methods=['POST'])
+@login_required
+def unlist_tutor():
+    if current_user.role != 'tutor':
+        abort(403)
+    profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first_or_404()
+    db.session.delete(profile)
+    db.session.commit()
+    flash('Your listing has been removed.', 'success')
+    return redirect(url_for('tutors'))
+
+
+@app.route('/tutor/<int:tutor_id>/edit', methods=['POST'])
+@login_required
+def edit_tutor_profile(tutor_id):
+    if current_user.role != 'tutor' or current_user.id != tutor_id:
+        abort(403)
+    profile = TutorProfile.query.filter_by(tutor_id=tutor_id).first_or_404()
+
+    #photo upload 
+    file = request.files.get('photo')
+    if file and file.filename and allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"tutor_{tutor_id}_{uuid.uuid4().hex[:8]}.{ext}"
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+        profile.profile_picture = filename
+
+    #availability - build JSON from day checkboxes and time inputs
+    days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    availability = {}
+    for day in days:
+        if request.form.get(f'avail_{day}_enabled'):
+            start = request.form.get(f'avail_{day}_start', '')
+            end = request.form.get(f'avail_{day}_end', '')
+            if start and end:
+                availability[day] = {'start': start, 'end': end}
+    profile.availability = json.dumps(availability) if availability else None
+    
+    profile.about_me = request.form.get('about_me', '').strip() or None
+    profile.subjects = request.form.get('subjects', '').strip() or None
+  
+    db.session.commit()
+    flash('Profile updated!', 'success')
+    return redirect(url_for('tutor_detail', tutor_id=tutor_id))
 
 
 @app.route('/tutor/<int:tutor_id>')
 def tutor_detail(tutor_id):
+    tutor = User.query.get_or_404(tutor_id)
+    if tutor.role != 'tutor':
+        abort(404)
+    profile = TutorProfile.query.filter_by(tutor_id=tutor_id).first()
+    reviews = Review.query.filter_by(tutor_id=tutor_id).order_by(Review.created_at.desc()).all()
+    raw = db.session.query(db.func.avg(Review.rating)).filter_by(tutor_id=tutor_id).scalar()
+    avg_rating = round(float(raw), 1) if raw is not None else None
+    subjects = [s.strip() for s in profile.subjects.split(',')] if profile and profile.subjects else []
 
-    tutors_data = [
-        {
-            "id": 1,
-            "name": "John Doe",
-            "subject": "Mathematics",
-            "rating": 4.8,
-            "availability": "Mon - Fri, 9am - 5pm",
-            "about": "I am an experienced mathematics tutor...",
-            "subjects": ["Mathematics", "Algebra", "Calculus", "Statistics"],
-            "reviews": [
-                {"name": "Alice", "rating": 5, "comment": "Great tutor", "time": "2 weeks ago"},
-                {"name": "Bob", "rating": 4, "comment": "Helpful", "time": "1 month ago"}
-            ]
-        },
-        {
-            "id": 2,
-            "name": "Jane Smith",
-            "subject": "English",
-            "rating": 4.6,
-            "availability": "Weekends",
-            "about": "I teach English...",
-            "subjects": ["English", "Writing"],
-            "reviews": [
-                {"name": "Tom", "rating": 5, "comment": "Excellent!", "time": "3 weeks ago"}
-            ]
-        }
-    ]
+    availability_data = {}
+    if profile and profile.availability:
+        try:
+            availability_data = json.loads(profile.availability)
+        except (json.JSONDecodeError, TypeError):
+            availability_data = {}
 
-    tutor = None
+    return render_template('Tutor_detail_page.html',
+                           tutor=tutor,
+                           profile=profile,
+                           reviews=reviews,
+                           avg_rating=avg_rating,
+                           subjects=subjects,
+                           availability_data=availability_data)
 
-    for t in tutors_data:
-        if t["id"] == tutor_id:
-            tutor = t
-            break
-    if tutor is None:
-        return "Tutor not found", 404
+@app.route('/tutor/<int:tutor_id>/review', methods=['POST'])
+@login_required
+def submit_review(tutor_id):
+    rating = request.form.get('rating', type=float)
+    comment = request.form.get('comment', '').strip()
 
-    return render_template('tutor_detail_page.html', tutor=tutor)
+    review = Review(
+        tutor_id=tutor_id,
+        student_id=current_user.id,
+        rating=rating,
+        comment=comment
+    )
+
+    db.session.add(review)
+    db.session.commit()
+
+    flash('Review submitted successfully!', 'success')
+    return redirect(url_for('tutor_detail', tutor_id=tutor_id))
 
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
