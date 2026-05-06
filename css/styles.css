@@ -1069,4 +1069,73 @@ body.login-body {
     .reviews-card h3 {
         font-weight: 600;
     }
+    /* =====================================================
+   ADDITIONS — append to the bottom of css/styles.css
+   ===================================================== */
+
+/* Dashboard summary cards */
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+}
+
+.summary-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.summary-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.summary-label {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #6c7a89;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.summary-value {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #3e5c76;
+}
+
+/* Dashboard welcome banner */
+.dashboard-welcome {
+    border-left: 4px solid #748CAB;
+    padding-left: 14px;
+}
+
+/* Star rating widget */
+.star-rating {
+    display: flex;
+    gap: 4px;
+}
+
+.star-btn {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #ccc;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.star-btn.active,
+.star-btn:hover {
+    color: #f0a500;
+}
+
+.star-btn:hover {
+    transform: scale(1.15);
+}
 
