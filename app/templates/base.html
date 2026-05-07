@@ -9,6 +9,18 @@
 </head>
 <body>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+                <div class="flash-alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
 <header class="app-header d-flex align-items-center">
     <button id="toggleSidebar" class="btn btn-light">☰</button>
     <h1 class="header-title header-center">{% block page_title %}App{% endblock %}</h1>
@@ -59,7 +71,15 @@
                 <div class="upcoming-session-card">
                     <div class="upcoming-subject">{{ s.subject or 'Session' }}</div>
                     <div class="upcoming-meta">{{ s.datetime.strftime('%d %b %Y, %H:%M') }}</div>
-                    <div class="upcoming-meta">with {{ s.student.username }}</div>
+                    {% if current_user.role == 'tutor' %}
+                        <div class="upcoming-meta">
+                            {{ s.bookings|length }}/{{ s.max_students }} students booked
+                        </div>
+                    {% else %}
+                        <div class="upcoming-meta">
+                            with {{ s.tutor.username }}
+                        </div>
+                    {% endif %}
                     <span class="session-badge badge-{{ s.status }}">{{ s.status }}</span>
                 </div>
                 {% endfor %}
@@ -142,6 +162,7 @@
         </ul>
     </div>
 
+
     <div class="content">
         {% block content %}{% endblock %}
     </div>
@@ -160,7 +181,17 @@
         document.getElementById('feedbackMeta').textContent = button.dataset.meta;
         document.getElementById('feedbackDisplay').style.display = 'block';
     }
+</script>
 
+<script>
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.flash-alert');
+        alerts.forEach(alert => {
+            alert.style.transition = "opacity 0.5s ease";
+            alert.style.opacity = "0";
+            setTimeout(() => alert.remove(), 500); // remove after fade
+        });
+    }, 3000); // 3000ms = 3 seconds
 </script>
 
 </body>
