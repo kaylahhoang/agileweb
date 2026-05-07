@@ -61,14 +61,24 @@ class Session(db.Model):
     __tablename__ = "sessions"
 
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     tutor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     subject = db.Column(db.String(128), nullable=False)
     datetime = db.Column(db.DateTime, nullable=False)
     duration = db.Column(db.Integer, nullable=False)  # duration in minutes
     location = db.Column(db.String(128), nullable=True)
+    max_students = db.Column(db.Integer, nullable=False, default=5)
     status = db.Column(db.String(16), nullable=False, default="scheduled")  # "scheduled", "completed", "cancelled"
     feedback = db.Column(db.Text, nullable=True)
 
-    student = db.relationship('User', foreign_keys=[student_id], backref='student_sessions')
     tutor = db.relationship('User', foreign_keys=[tutor_id], backref='tutor_sessions')
+
+class Booking(db.Model):
+    __tablename__ = "bookings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('sessions.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    session = db.relationship('Session', backref=db.backref('bookings', cascade='all, delete-orphan'))
+    student = db.relationship('User', foreign_keys=[student_id], backref='student_bookings')
