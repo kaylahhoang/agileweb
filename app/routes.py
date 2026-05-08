@@ -5,9 +5,9 @@ from flask import jsonify, render_template, redirect, url_for, flash, request, a
 from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
-from app import app, db
+from app import app, db, mail
 from app.models import User, TutorProfile, Session, Review
-from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
+from app.forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
 import calendar
 from datetime import datetime, timedelta, timezone
 from flask_mail import Message
@@ -108,44 +108,44 @@ def forgot_password():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user:
-                s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-                token = s.dumps(user.email, salt = 'password-reset-salt')
-                reset_link = url_for('reset_passwrod', token=token, _external=True)
-                msg = Message('Password Reset Request', recipients = [user.email])
-                msg.body = f'Click the link to reset your password: {reset_url}\n\nThis link will expire in 30 minutes.\nIf you did not request a password reset, please ignore this email.'
+            s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+            token = s.dumps(user.email, salt='password-reset-salt')
+            reset_link = url_for('reset_password', token=token, _external=True)
+            msg = Message('Password Reset Request', recipients=[user.email])
+            msg.body = f'Click the link to reset your password: {reset_link}\n\nThis link will expire in 30 minutes.\nIf you did not request a password reset, please ignore this email.'
+
+            try:
                 mail.send(msg)
-            
-            flash('If that email is registered, you will receive reset instructions shortly.', 'success')
+            except Exception:
+                flash('Failed to send reset email. Please try again later.', 'reset_error')
+                return redirect(url_for('forgot_password'))
+
+        flash('If that email is registered, you will receive reset instructions shortly.', 'success')
         return redirect(url_for('forgot_password'))
     return render_template('forgotpassword.html', form=form)
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_passwrod(token):
+def reset_password(token):
     s  = URLSafeTimedSerializer(app.config['SECRET_KEY'])
     try: 
         email = s.loads(token, salt='password-reset-salt', max_age = 1800)
     except SignatureExpired:
-        flash('The password reset link has expired.', 'error')
+        flash('The password reset link has expired.', 'reset_error')
         return redirect(url_for('forgot_password'))
     except BadSignature:
-        flash('Invalid password reset link', 'error')
+        flash('Invalid password reset link', 'reset_error')
         return redirect(url_for('forgot_password'))
 
     user = User.query.filter_by(email=email).first_or_404()
+    form = ResetPasswordForm()
 
-    if request.method == 'POST' 
-        new_password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        if not new_password or len(new_password) < 6:
-            flash ('Password must be at least 6 characters long.', 'error')
-        elif new_password != confirm_password:
-            flash('Passwords do not match.', 'error')
-        else:
-            user.set_password(new_password)
-            db.session.commit()
-            flash('Your password has been reset. Please log in.', 'success')
-        
-        return render_template('reset_password.html', token=token)
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Your password has been reset. Please log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', form=form, token=token)
     
 
 @app.route('/tutors')
