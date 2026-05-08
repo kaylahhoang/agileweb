@@ -10,6 +10,8 @@ from app.models import User, TutorProfile, Session, Review
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 import calendar
 from datetime import datetime, timedelta, timezone
+from flask_mail import Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'tutor_photos')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -104,10 +106,47 @@ def register():
 def forgot_password():
     form = ForgotPasswordForm()
     if form.validate_on_submit():
-        flash('If that email is registered, you will receive reset instructions shortly.', 'success')
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+                s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                token = s.dumps(user.email, salt = 'password-reset-salt')
+                reset_link = url_for('reset_passwrod', token=token, _external=True)
+                msg = Message('Password Reset Request', recipients = [user.email])
+                msg.body = f'Click the link to reset your password: {reset_url}\n\nThis link will expire in 30 minutes.\nIf you did not request a password reset, please ignore this email.'
+                mail.send(msg)
+            
+            flash('If that email is registered, you will receive reset instructions shortly.', 'success')
         return redirect(url_for('forgot_password'))
     return render_template('forgotpassword.html', form=form)
 
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_passwrod(token):
+    s  = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try: 
+        email = s.loads(token, salt='password-reset-salt', max_age = 1800)
+    except SignatureExpired:
+        flash('The password reset link has expired.', 'error')
+        return redirect(url_for('forgot_password'))
+    except BadSignature:
+        flash('Invalid password reset link', 'error')
+        return redirect(url_for('forgot_password'))
+
+    user = User.query.filter_by(email=email).first_or_404()
+
+    if request.method == 'POST' 
+        new_password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        if not new_password or len(new_password) < 6:
+            flash ('Password must be at least 6 characters long.', 'error')
+        elif new_password != confirm_password:
+            flash('Passwords do not match.', 'error')
+        else:
+            user.set_password(new_password)
+            db.session.commit()
+            flash('Your password has been reset. Please log in.', 'success')
+        
+        return render_template('reset_password.html', token=token)
+    
 
 @app.route('/tutors')
 @login_required
