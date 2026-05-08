@@ -137,7 +137,12 @@
                 <a class="nav-link text-white" href="/tutors">Tutors</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-white" href="/messages">Messages</a>
+                <a class="nav-link text-white d-flex align-items-center gap-2" href="/messages">
+                    Messages
+                    {% if unread_count %}
+                    <span class="badge bg-primary rounded-pill" style="font-size:0.7rem;">{{ unread_count }}</span>
+                    {% endif %}
+                </a>
             </li>
         </ul>
     </div>

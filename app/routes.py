@@ -6,13 +6,40 @@ from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from app.models import User, TutorProfile, Session, Review
+from app.models import User, TutorProfile, Session, Review, Conversation, ConversationParticipant, Message
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 import calendar
 from datetime import datetime, timedelta, timezone
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'tutor_photos')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+
+def _unread_count(user_id):
+    return (Message.query
+            .join(ConversationParticipant, Message.conversation_id == ConversationParticipant.conversation_id)
+            .filter(ConversationParticipant.user_id == user_id)
+            .filter(Message.sender_id != user_id)
+            .filter(Message.read_at.is_(None))
+            .count())
+
+
+def _get_or_create_conversation(user1_id, user2_id):
+    user2_conv_ids = (db.session.query(ConversationParticipant.conversation_id)
+                      .filter_by(user_id=user2_id).subquery())
+    conv = (Conversation.query
+            .join(ConversationParticipant, Conversation.id == ConversationParticipant.conversation_id)
+            .filter(ConversationParticipant.user_id == user1_id)
+            .filter(Conversation.id.in_(user2_conv_ids))
+            .first())
+    if not conv:
+        conv = Conversation()
+        db.session.add(conv)
+        db.session.flush()
+        db.session.add(ConversationParticipant(conversation_id=conv.id, user_id=user1_id))
+        db.session.add(ConversationParticipant(conversation_id=conv.id, user_id=user2_id))
+        db.session.commit()
+    return conv
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -35,7 +62,8 @@ def inject_profile_data():
                     .filter(Session.datetime > now, Session.status.in_(['pending', 'confirmed']))
                     .order_by(Session.datetime)
                     .limit(3).all())
-        return dict(tutor_profile=profile, sessions_run=sessions_run, upcoming_sessions=upcoming)
+        unread_count = _unread_count(current_user.id)
+        return dict(tutor_profile=profile, sessions_run=sessions_run, upcoming_sessions=upcoming, unread_count=unread_count)
     else:
         sessions_attended = Session.query.filter_by(student_id=current_user.id, status='completed').count()
         three_months_ago = now - timedelta(days=90)
@@ -50,10 +78,12 @@ def inject_profile_data():
                     .filter(Session.datetime > now, Session.status.in_(['pending', 'confirmed']))
                     .order_by(Session.datetime)
                     .limit(3).all())
+        unread_count = _unread_count(current_user.id)
         return dict(
             sessions_attended=sessions_attended,
             recent_feedback_sessions=recent_feedback_sessions,
-            upcoming_sessions=upcoming
+            upcoming_sessions=upcoming,
+            unread_count=unread_count
         )
 
 
@@ -395,3 +425,57 @@ def cancel_booking(session_id):
 
     flash('Booking cancelled successfully.', 'success')
     return redirect(url_for('schedule'))
+
+
+@app.route('/messages')
+@login_required
+def inbox():
+    uid = current_user.id
+    my_conv_ids = (db.session.query(ConversationParticipant.conversation_id)
+                   .filter_by(user_id=uid).subquery())
+    all_convs = Conversation.query.filter(Conversation.id.in_(my_conv_ids)).all()
+
+    conversations = []
+    for conv in all_convs:
+        if not conv.messages:
+            continue
+        other_p = next((p for p in conv.participants if p.user_id != uid), None)
+        if not other_p:
+            continue
+        last_msg = conv.messages[-1]
+        unread = sum(1 for m in conv.messages if m.sender_id != uid and m.read_at is None)
+        conversations.append({'conv': conv, 'user': other_p.user, 'last_msg': last_msg, 'unread': unread})
+
+    conversations.sort(key=lambda x: x['last_msg'].sent_at, reverse=True)
+
+    active_user_id = request.args.get('user_id', type=int)
+    thread_messages = []
+    other_user = None
+
+    if active_user_id:
+        other_user = User.query.get_or_404(active_user_id)
+        active_conv = _get_or_create_conversation(uid, active_user_id)
+        thread_messages = active_conv.messages
+
+        for msg in thread_messages:
+            if msg.sender_id != uid and msg.read_at is None:
+                msg.read_at = datetime.utcnow()
+        db.session.commit()
+
+    return render_template('messages.html',
+                           conversations=conversations,
+                           thread_messages=thread_messages,
+                           other_user=other_user,
+                           active_user_id=active_user_id)
+
+
+@app.route('/messages/<int:user_id>/send', methods=['POST'])
+@login_required
+def send_message(user_id):
+    content = request.form.get('body', '').strip()
+    if content:
+        conv = _get_or_create_conversation(current_user.id, user_id)
+        msg = Message(conversation_id=conv.id, sender_id=current_user.id, content=content)
+        db.session.add(msg)
+        db.session.commit()
+    return redirect(url_for('inbox', user_id=user_id))
