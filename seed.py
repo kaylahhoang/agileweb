@@ -29,12 +29,14 @@ def seed():
             about_me="Experienced maths and physics tutor.",
             subjects="Mathematics, Physics",
             availability="Mon 2-4pm, Wed 10am-12pm",
+            profile_picture = "default-profile1.png"
         )
         profile2 = TutorProfile(
             tutor_id=tutor2.id,
             about_me="Computer science grad specialising in Python and algorithms.",
             subjects="Python, Data Structures, Algorithms",
             availability="Tue 1-3pm, Thu 3-5pm",
+            profile_picture = "default-profile2.png"
         )
         db.session.add_all([profile1, profile2])
         db.session.commit()

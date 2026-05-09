@@ -41,9 +41,11 @@ class TutorProfile(db.Model):
     about_me = db.Column(db.Text, nullable=True)
     subjects = db.Column(db.String(256), nullable=True)  # comma-separated list of subjects
     availability = db.Column(db.String(256), nullable=True)  # e.g. "Mon 2-4pm, Wed 10am-12pm"
+    profile_picture = db.Column(db.String(255), nullable=True)
+    
     tutor = db.relationship('User', backref=db.backref('tutor_profile', uselist=False))
 
-
+    
 class Review(db.Model):
     __tablename__ = "reviews"
 
