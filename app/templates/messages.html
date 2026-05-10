@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Messages{% endblock %}
+{% block page_title %}Messages{% endblock %}
+
+{% block content %}
+<div class="messages-layout">
+
+    <!-- Left panel: conversation list -->
+    <div class="conversation-panel main-card p-0">
+        <div class="panel-header d-flex justify-content-between align-items-center">
+            <h2>Messages</h2>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#composeModal"
+                    title="New message">✏️</button>
+        </div>
+
+        <div class="conversation-list">
+            {% for conv in conversations %}
+            <a href="{{ url_for('inbox', user_id=conv.user.id) }}"
+               class="conversation-item text-decoration-none {% if active_user_id == conv.user.id %}active{% endif %}">
+                <div class="conversation-avatar">{{ conv.user.username[0].upper() }}</div>
+                <div class="conversation-info">
+                    <div class="conversation-top">
+                        <strong style="{% if conv.unread %}font-weight:700;{% endif %}">{{ conv.user.username }}</strong>
+                        <span>{{ conv.last_msg.sent_at.strftime('%d %b') }}</span>
+                    </div>
+                    <p>
+                        {% if conv.last_msg.sender_id == current_user.id %}You: {% endif %}
+                        {{ conv.last_msg.content[:55] }}{% if conv.last_msg.content|length > 55 %}…{% endif %}
+                    </p>
+                </div>
+                {% if conv.unread %}
+                <span class="badge bg-primary rounded-pill align-self-center ms-1">{{ conv.unread }}</span>
+                {% endif %}
+            </a>
+            {% else %}
+            <p class="p-3 text-muted" style="font-size:0.9rem;">No conversations yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right panel: thread or placeholder -->
+    <div class="chat-panel main-card p-0">
+        {% if other_user %}
+
+        <div class="chat-header">
+            <h5>{{ other_user.username }}</h5>
+            <p>{{ other_user.role | capitalize }}</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            {% for msg in thread_messages %}
+            <div class="message-row {% if msg.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                <div class="message-bubble">
+                    <div>{{ msg.content }}</div>
+                    <small style="opacity:0.6; font-size:0.72rem; display:block; margin-top:4px;">
+                        {{ msg.sent_at.strftime('%d %b, %H:%M') }}
+                    </small>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted text-center mt-5" style="font-size:0.9rem;">No messages yet — say hello!</p>
+            {% endfor %}
+        </div>
+
+        <form class="chat-input-area" method="POST" action="{{ url_for('send_message', user_id=other_user.id) }}">
+            <input type="text" name="body" placeholder="Type a message…" required autocomplete="off" autofocus>
+            <button type="submit" class="btn btn-primary px-4">Send</button>
+        </form>
+
+        {% else %}
+
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+            <p style="font-size:1rem;">Select a conversation to start messaging.</p>
+        </div>
+
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Compose modal -->
+<div class="modal fade" id="composeModal" tabindex="-1" aria-labelledby="composeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="composeModalLabel">New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="GET" action="{{ url_for('inbox') }}">
+                <div class="modal-body">
+                    <label class="form-label">Send to</label>
+                    <select name="user_id" class="form-select" required>
+                        <option value="" disabled selected>Select a user…</option>
+                        {% for u in all_users %}
+                        <option value="{{ u.id }}">{{ u.username }} ({{ u.role }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary w-100">Start Conversation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chat = document.getElementById('chatMessages');
+    if (chat) chat.scrollTop = chat.scrollHeight;
+</script>
+{% endblock %}
