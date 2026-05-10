@@ -83,7 +83,7 @@
                             <p class="day-number">{{ day }}</p>
 
                             {% for session in sessions_by_day.get(day, []) %}
-                                <div class="class-pill math"
+                                <div class="class-pill {{ session.subject|lower|replace(' ', '-') }}"
                                     onclick="showDetails(
                                         '{{ session.subject }}',
                                         '{{ session.datetime.strftime("%d %b %Y, %I:%M %p") }}',
@@ -147,7 +147,7 @@
     <div id="weeklyView" style="display: none;">
         <div class="weekly-list">
             {% for session in week_sessions %}
-                <div class="week-class math"
+                <div class="class-pill {{ session.subject|lower|replace(' ', '-') }}"
                     onclick="showDetails(
                         '{{ session.subject }}',
                         '{{ session.datetime.strftime("%A, %d %b %Y, %I:%M %p") }}',
@@ -194,7 +194,7 @@
     <div id="dailyView" style="display: none;">
         <div class="daily-list">
             {% for session in day_sessions %}
-                <div class="daily-class math"
+                <div class="class-pill {{ session.subject|lower|replace(' ', '-') }}"
                     onclick="showDetails(
                         '{{ session.subject }}',
                         '{{ session.datetime.strftime("%I:%M %p") }}',
