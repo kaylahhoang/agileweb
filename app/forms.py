@@ -7,6 +7,13 @@ class ForgotPasswordForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Reset Password')
 
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm New Password', validators= [
+        DataRequired(), EqualTo('password', message='Passwords must match')
+    ])
+
+    submit = SubmitField('Set New Password')
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
