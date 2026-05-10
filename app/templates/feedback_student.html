@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback{% endblock %}
+{% block page_title %}TUTOR BOOKING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="feedback-content p-4">
+
+{% if current_user.role == 'tutor' %}
+
+    <h2 class="mb-2">Write Student Feedback</h2>
+    <p class="text-muted mb-4">Select a session and student to write feedback for.</p>
+
+    <div class="main-card mb-4">
+
+        <div class="mb-3">
+            <label class="form-label" for="sessionSelect">Session</label>
+            <select class="form-select" id="sessionSelect">
+                <option value="" disabled selected>Select a completed session…</option>
+                {% for s in sessions_data %}
+                <option value="{{ s.id }}">{{ s.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3" id="studentSearchWrapper" style="display:none;">
+            <label class="form-label" for="studentSearch">Search Student</label>
+            <input type="text" class="form-control" id="studentSearch" placeholder="Type a student name…" autocomplete="off">
+            <div id="studentResults" class="list-group mt-1"></div>
+        </div>
+
+        <form method="POST" action="{{ url_for('feedback') }}" id="feedbackForm" style="display:none;">
+            <input type="hidden" name="booking_id" id="bookingId">
+            <div class="mb-3">
+                <label class="form-label">Writing feedback for: <strong id="selectedStudentName"></strong></label>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="feedbackText">Feedback</label>
+                <textarea class="form-control" id="feedbackText" name="feedback_text" rows="5"
+                          placeholder="Write your feedback about this student…"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Feedback</button>
+            <button type="button" class="btn btn-secondary ms-2" id="clearStudent">Change Student</button>
+        </form>
+
+    </div>
+
+{% else %}
+
+    <h2 class="mb-2">My Feedback</h2>
+    <p class="text-muted mb-4">Feedback written by your tutors after sessions.</p>
+
+    <div class="mb-3">
+        <input type="text" class="form-control" id="sessionFilter" placeholder="Search by subject or tutor…">
+    </div>
+
+    {% if bookings %}
+        {% for booking in bookings %}
+        <div class="main-card mb-3 feedback-card"
+             data-subject="{{ booking.session.subject }}"
+             data-tutor="{{ booking.session.tutor.username }}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>{{ booking.session.subject }}</strong>
+                    <span class="text-muted ms-2">{{ booking.session.datetime.strftime('%d %b %Y, %H:%M') }}</span>
+                </div>
+                <small class="text-muted">Tutor: {{ booking.session.tutor.username }}</small>
+            </div>
+            {% if booking.tutor_feedback %}
+            <p class="mt-2 mb-0">{{ booking.tutor_feedback }}</p>
+            {% else %}
+            <p class="mt-2 mb-0 text-muted fst-italic">No feedback written yet.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">No completed sessions yet.</p>
+    {% endif %}
+
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sessionsData = {{ sessions_data | tojson if sessions_data is defined else '[]' }};
+
+const sessionSelect  = document.getElementById('sessionSelect');
+const studentWrapper = document.getElementById('studentSearchWrapper');
+const studentSearch  = document.getElementById('studentSearch');
+const studentResults = document.getElementById('studentResults');
+const feedbackForm   = document.getElementById('feedbackForm');
+const bookingIdInput = document.getElementById('bookingId');
+const selectedName   = document.getElementById('selectedStudentName');
+const feedbackText   = document.getElementById('feedbackText');
+const clearBtn       = document.getElementById('clearStudent');
+
+let currentStudents = [];
+
+if (sessionSelect) {
+    sessionSelect.addEventListener('change', () => {
+        const session = sessionsData.find(s => s.id == sessionSelect.value);
+        currentStudents = session ? session.students : [];
+        studentWrapper.style.display = currentStudents.length ? 'block' : 'none';
+        feedbackForm.style.display = 'none';
+        studentSearch.value = '';
+        studentResults.innerHTML = '';
+    });
+}
+
+if (studentSearch) {
+    studentSearch.addEventListener('input', () => {
+        const q = studentSearch.value.toLowerCase();
+        studentResults.innerHTML = '';
+        if (!q) return;
+        currentStudents
+            .filter(s => s.name.toLowerCase().includes(q))
+            .forEach(s => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action';
+                item.textContent = s.name;
+                item.addEventListener('click', () => selectStudent(s));
+                studentResults.appendChild(item);
+            });
+    });
+}
+
+function selectStudent(s) {
+    bookingIdInput.value = s.booking_id;
+    selectedName.textContent = s.name;
+    feedbackText.value = s.existing;
+    studentWrapper.style.display = 'none';
+    feedbackForm.style.display = 'block';
+}
+
+if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+        feedbackForm.style.display = 'none';
+        studentWrapper.style.display = 'block';
+        studentSearch.value = '';
+        studentResults.innerHTML = '';
+    });
+}
+
+// Student view: filter cards
+const sessionFilter = document.getElementById('sessionFilter');
+if (sessionFilter) {
+    sessionFilter.addEventListener('input', () => {
+        const q = sessionFilter.value.toLowerCase();
+        document.querySelectorAll('.feedback-card').forEach(card => {
+            const match = card.dataset.subject.toLowerCase().includes(q)
+                       || card.dataset.tutor.toLowerCase().includes(q);
+            card.style.display = match ? '' : 'none';
+        });
+    });
+}
+</script>
+{% endblock %}
