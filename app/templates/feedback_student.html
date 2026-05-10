@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Feedback{% endblock %}
+{% block page_title %}TUTOR BOOKING SYSTEM{% endblock %}
+
+{% block content %}
+<div class="feedback-content p-4">
+
+    <h2 class="mb-2">Submit Feedback</h2>
+    <p class="text-muted mb-4">Share your experience with your tutor.</p>
+
+    <!-- Submission form card -->
+    <div class="main-card mb-4">
+        <h5 class="mb-3">New Feedback</h5>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('submit_feedback') }}">
+
+            <div class="mb-3">
+                <label class="form-label" for="fbSession">Session</label>
+                <select class="form-select" id="fbSession" name="session_id" required>
+                    <option value="" disabled selected>Select a session…</option>
+                    {% for session in sessions %}
+                    <option value="{{ session.id }}">
+                        {{ session.subject }} — {{ session.datetime.strftime('%d %b %Y, %H:%M') }}
+                        ({{ session.tutor.username }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Rating</label>
+                <div class="star-rating" id="starRating" role="group" aria-label="Rating">
+                    <button type="button" class="star-btn" data-value="1" aria-label="1 star">★</button>
+                    <button type="button" class="star-btn" data-value="2" aria-label="2 stars">★</button>
+                    <button type="button" class="star-btn" data-value="3" aria-label="3 stars">★</button>
+                    <button type="button" class="star-btn" data-value="4" aria-label="4 stars">★</button>
+                    <button type="button" class="star-btn" data-value="5" aria-label="5 stars">★</button>
+                </div>
+                <input type="hidden" id="fbRating" name="rating" value="0">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="fbComment">Comments</label>
+                <textarea class="form-control" id="fbComment" name="comment" rows="4"
+                          placeholder="Describe your experience…"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Feedback</button>
+        </form>
+    </div>
+
+    <!-- Submitted feedback list -->
+    <div class="main-card">
+        <h5 class="mb-3">Your Previous Feedback</h5>
+        {% if past_feedback %}
+            {% for review in past_feedback %}
+            <div class="feedback-session-item mb-3">
+                <div class="d-flex justify-content-between">
+                    <strong>{{ review.tutor.username }}</strong>
+                    <span class="text-muted">{{ review.created_at.strftime('%d %b %Y') }}</span>
+                </div>
+                <div>
+                    {% for i in range(review.rating | int) %}★{% endfor %}
+                    {% for i in range(5 - review.rating | int) %}☆{% endfor %}
+                    ({{ review.rating }})
+                </div>
+                {% if review.comment %}
+                <p class="mb-0 mt-1">{{ review.comment }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No feedback submitted yet.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const stars = document.querySelectorAll('.star-btn');
+    const ratingInput = document.getElementById('fbRating');
+
+    stars.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const val = parseInt(btn.dataset.value);
+            ratingInput.value = val;
+            stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= val));
+        });
+        btn.addEventListener('mouseenter', () => {
+            const val = parseInt(btn.dataset.value);
+            stars.forEach(s => s.classList.toggle('hovered', parseInt(s.dataset.value) <= val));
+        });
+        btn.addEventListener('mouseleave', () => {
+            stars.forEach(s => s.classList.remove('hovered'));
+        });
+    });
+</script>
+{% endblock %}
