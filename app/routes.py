@@ -6,16 +6,42 @@ from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from app.models import User, TutorProfile, Session, Booking,  Review
+from app.models import User, TutorProfile, Session, Booking, Review, Conversation, ConversationParticipant, Message
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 import calendar
-from datetime import datetime, timedelta, timezone
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'tutor_photos')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _unread_count(user_id):
+    return (Message.query
+            .join(ConversationParticipant, Message.conversation_id == ConversationParticipant.conversation_id)
+            .filter(ConversationParticipant.user_id == user_id)
+            .filter(Message.sender_id != user_id)
+            .filter(Message.read_at.is_(None))
+            .count())
+
+
+def _get_or_create_conversation(user1_id, user2_id):
+    user2_conv_ids = (db.session.query(ConversationParticipant.conversation_id)
+                      .filter_by(user_id=user2_id).subquery())
+    conv = (Conversation.query
+            .join(ConversationParticipant, Conversation.id == ConversationParticipant.conversation_id)
+            .filter(ConversationParticipant.user_id == user1_id)
+            .filter(Conversation.id.in_(user2_conv_ids))
+            .first())
+    if not conv:
+        conv = Conversation()
+        db.session.add(conv)
+        db.session.flush()
+        db.session.add(ConversationParticipant(conversation_id=conv.id, user_id=user1_id))
+        db.session.add(ConversationParticipant(conversation_id=conv.id, user_id=user2_id))
+        db.session.commit()
+    return conv
 
 @app.route('/upload/tutor_photos/<filename>')
 def uploaded_file(filename):
@@ -171,7 +197,7 @@ def edit_tutor_profile(tutor_id):
         abort(403)
     profile = TutorProfile.query.filter_by(tutor_id=tutor_id).first_or_404()
 
-    #photo upload 
+    # Photo upload
     file = request.files.get('photo')
     if file and file.filename and allowed_file(file.filename):
         ext = file.filename.rsplit('.', 1)[1].lower()
@@ -180,7 +206,7 @@ def edit_tutor_profile(tutor_id):
         file.save(os.path.join(UPLOAD_FOLDER, filename))
         profile.profile_picture = filename
 
-    #availability - build JSON from day checkboxes and time inputs
+    # Availability — build JSON from day checkboxes + time inputs
     days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     availability = {}
     for day in days:
@@ -190,10 +216,10 @@ def edit_tutor_profile(tutor_id):
             if start and end:
                 availability[day] = {'start': start, 'end': end}
     profile.availability = json.dumps(availability) if availability else None
-    
+
     profile.about_me = request.form.get('about_me', '').strip() or None
     profile.subjects = request.form.get('subjects', '').strip() or None
-  
+
     db.session.commit()
     flash('Profile updated!', 'success')
     return redirect(url_for('tutor_detail', tutor_id=tutor_id))
@@ -259,7 +285,7 @@ def me():
 @app.route('/bookings')
 @login_required
 def schedule():
-    today = datetime.today()
+    today = datetime.utcnow()
 
     year = request.args.get('year', today.year, type=int)
     month = request.args.get('month', today.month, type=int)
@@ -279,19 +305,13 @@ def schedule():
             .order_by(Session.datetime)
             .all()
         )
-
-    month_sessions = [
-        session for session in sessions
-        if session.datetime.year == year and session.datetime.month == month
-    ]
-
     sessions_by_day = {}
-    for session in month_sessions:
-        day = session.datetime.day
-        if day not in sessions_by_day:
-            sessions_by_day[day] = []
-        sessions_by_day[day].append(session)
 
+    for session in sessions:
+        if session.datetime.year == year and session.datetime.month == month:
+            day = session.datetime.day
+            sessions_by_day.setdefault(day, []).append(session)
+    
     cal = calendar.Calendar(firstweekday=6)  # Sunday start
     calendar_weeks = cal.monthdayscalendar(year, month)
 
@@ -451,3 +471,138 @@ def cancel_booking(session_id):
 
     flash('You left the session successfully.', 'success')
     return redirect(url_for('schedule'))
+
+
+@app.route('/conversations', methods=['POST'])
+@login_required
+def create_conversations():
+    data = request.get_json()
+    user_ids = data.get('user_ids', [])
+
+    conversation = Conversation()
+    db.session.add(conversation)
+    db.session.flush()  # Get conversation.id before commit
+
+    for user_id in user_ids:
+        participant = ConversationParticipant(
+            conversation_id=conversation.id,
+            user_id=user_id
+        )
+        db.session.add(participant)
+
+    db.session.commit()
+    return jsonify({'conversation_id': conversation.id}), 201
+
+
+@app.route('/conversations', methods=['GET'])
+def get_conversations():
+    user_id = request.args.get('user_id')  # e.g. /conversations?user_id=1
+
+    participations = ConversationParticipant.query.filter_by(user_id=user_id).all()
+    conversation_ids = [p.conversation_id for p in participations]
+
+    conversations = Conversation.query.filter(
+        Conversation.id.in_(conversation_ids)
+    ).order_by(Conversation.created_at.desc()).all()
+
+    return jsonify([{'id': c.id, 'created_at': c.created_at} for c in conversations]), 200
+
+@app.route('/conversations/<int:conversation_id>/messages', methods=['GET'])
+def get_messages(conversation_id):
+    messages = Message.query.filter_by(
+        conversation_id=conversation_id
+    
+    ).order_by(Message.sent_at.asc()).all()
+
+    return jsonify([
+        {
+            'id': m.id,
+            'sender_id': m.sender_id,
+            'content': m.content,
+            'sent_at': m.sent_at
+        }
+
+        for m in messages
+    ]), 200
+
+@app.route('/conversations/<int:conversation_id>/messages', methods=['POST'])
+@login_required
+def api_send_message(conversation_id):
+    data = request.get_json()
+
+    message = Message(
+        conversation_id=conversation_id,
+        sender_id=data['sender_id'],
+        content=data['content']
+    )
+    db.session.add(message)
+    db.session.commit()
+
+    return jsonify({'message_id': message.id, 'sent_at': message.sent_at}), 201
+
+
+@app.route('/message/<int:message_id>', methods=['PATCH'])
+@login_required
+def mark_as_read(message_id):
+    message = Message.query.get_or_404(message_id)
+    message.read_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({'message_id': message.id, 'read_at': message.read_at}), 200
+
+
+@app.route('/messages')
+@login_required
+def inbox():
+    uid = current_user.id
+    my_conv_ids = (db.session.query(ConversationParticipant.conversation_id)
+                   .filter_by(user_id=uid).subquery())
+    all_convs = Conversation.query.filter(Conversation.id.in_(my_conv_ids)).all()
+
+    conversations = []
+    for conv in all_convs:
+        if not conv.messages:
+            continue
+        other_p = next((p for p in conv.participants if p.user_id != uid), None)
+        if not other_p:
+            continue
+        last_msg = conv.messages[-1]
+        unread = sum(1 for m in conv.messages if m.sender_id != uid and m.read_at is None)
+        conversations.append({'conv': conv, 'user': other_p.user, 'last_msg': last_msg, 'unread': unread})
+
+    conversations.sort(key=lambda x: x['last_msg'].sent_at, reverse=True)
+
+    active_user_id = request.args.get('user_id', type=int)
+    thread_messages = []
+    other_user = None
+
+    if active_user_id:
+        other_user = User.query.get_or_404(active_user_id)
+        active_conv = _get_or_create_conversation(uid, active_user_id)
+        thread_messages = active_conv.messages
+        for msg in thread_messages:
+            if msg.sender_id != uid and msg.read_at is None:
+                msg.read_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+    all_users = User.query.filter(User.id != uid).order_by(User.username).all()
+
+    return render_template('messages.html',
+                           conversations=conversations,
+                           thread_messages=thread_messages,
+                           other_user=other_user,
+                           active_user_id=active_user_id,
+                           all_users=all_users)
+
+
+@app.route('/messages/<int:user_id>/send', methods=['POST'])
+@login_required
+def send_message(user_id):
+    content = request.form.get('body', '').strip()
+    if content:
+        conv = _get_or_create_conversation(current_user.id, user_id)
+        msg = Message(conversation_id=conv.id, sender_id=current_user.id, content=content)
+        db.session.add(msg)
+        db.session.commit()
+    return redirect(url_for('inbox', user_id=user_id))
+
