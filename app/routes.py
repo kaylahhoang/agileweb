@@ -9,7 +9,6 @@ from app import app, db, mail
 from app.models import User, TutorProfile, Session, Booking, Review, Conversation, ConversationParticipant, Message
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
 import calendar
-from datetime import datetime, timedelta, timezone
 from flask_mail import Message as MailMessage
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
@@ -116,7 +115,7 @@ def login():
         user = User.query.filter_by(username=login_form.username.data).first()
         if user and user.check_password(login_form.password.data):
             login_user(user)
-            return redirect(url_for('tutors'))  # replace with dashboard route later
+            return redirect(url_for('feedback'))  # redirect to dashboard
         flash('Invalid username or password', 'login_error')
 
     return render_template('login.html', login_form=login_form, register_form=register_form)
