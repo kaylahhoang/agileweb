@@ -1,5 +1,5 @@
 from app import app, db
-from app.models import User, TutorProfile, Review, Session 
+from app.models import User, TutorProfile, Review, Session, Booking
 from datetime import datetime, timezone, timedelta
 
 def seed():
@@ -43,35 +43,56 @@ def seed():
 
      #Sessions
         now = datetime.now(timezone.utc)
+
         session1 = Session(
-            student_id=student1.id,
             tutor_id=tutor1.id,
             subject="Mathematics",
             datetime=now + timedelta(days=3),
             duration=60,
             location="Library Room 4",
+            max_students=5,
             status="scheduled",
         )
         session2 = Session(
-            student_id=student2.id,
             tutor_id=tutor2.id,
             subject="Python",
             datetime=now - timedelta(days=7),
             duration=90,
             location="Online",
             status="completed",
+            max_students=5,
             feedback="Great session, very helpful!",
         )
         session3 = Session(
-            student_id=student1.id,
             tutor_id=tutor2.id,
             subject="Algorithms",
             datetime=now + timedelta(days=10),
             duration=60,
             location="Online",
             status="scheduled",
+            max_students=5,
         )
+
         db.session.add_all([session1, session2, session3])
+        db.session.commit()
+
+        # Bookings: students join sessions
+        booking1 = Booking(
+            session_id=session1.id,
+            student_id=student1.id,
+        )
+
+        booking2 = Booking(
+            session_id=session2.id,
+            student_id=student2.id,
+        )
+
+        booking3 = Booking(
+            session_id=session3.id,
+            student_id=student1.id,
+        )
+
+        db.session.add_all([booking1, booking2, booking3])
         db.session.commit()
 
         # --- Reviews ---
