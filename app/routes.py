@@ -646,3 +646,44 @@ def send_message(user_id):
         db.session.commit()
     return redirect(url_for('inbox', user_id=user_id))
 
+
+@app.route('/feedback', methods=['GET', 'POST'])
+@login_required
+def feedback():
+    if current_user.role == 'tutor':
+        sessions = (Session.query
+                    .filter_by(tutor_id=current_user.id)
+                    .filter(Session.status == 'completed')
+                    .order_by(Session.datetime.desc()).all())
+
+        if request.method == 'POST':
+            booking_id = request.form.get('booking_id', type=int)
+            feedback_text = request.form.get('feedback_text', '').strip()
+            booking = Booking.query.get_or_404(booking_id)
+            if booking.session.tutor_id != current_user.id:
+                abort(403)
+            booking.tutor_feedback = feedback_text
+            db.session.commit()
+            flash('Feedback submitted!', 'success')
+            return redirect(url_for('feedback'))
+
+        sessions_data = [
+            {
+                'id': s.id,
+                'label': f"{s.subject} — {s.datetime.strftime('%d %b %Y, %H:%M')}",
+                'students': [
+                    {'booking_id': b.id, 'name': b.student.username, 'existing': b.tutor_feedback or ''}
+                    for b in s.bookings
+                ]
+            }
+            for s in sessions
+        ]
+        return render_template('feedback_student.html', sessions_data=sessions_data)
+
+    else:  # student
+        bookings = (Booking.query
+                    .filter_by(student_id=current_user.id)
+                    .join(Session)
+                    .filter(Session.status == 'completed')
+                    .order_by(Session.datetime.desc()).all())
+        return render_template('feedback_student.html', bookings=bookings)

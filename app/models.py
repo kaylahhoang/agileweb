@@ -79,6 +79,7 @@ class Booking(db.Model):
     session_id = db.Column(db.Integer, db.ForeignKey('sessions.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    tutor_feedback = db.Column(db.Text, nullable=True)
 
     session = db.relationship('Session', backref=db.backref('bookings', cascade='all, delete-orphan'))
     student = db.relationship('User', foreign_keys=[student_id], backref='student_bookings')
