@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Messages{% endblock %}
+{% block page_title %}Messaging system{% endblock %}
+
+{% block content %}
+<div class="messages-layout">
+
+    <!-- Left panel: conversation list -->
+    <section class="conversation-panel">
+        <div class="panel-header d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Messages</h2>
+            <button class="btn btn-sm btn-primary" id="newMsgBtn">+ New</button>
+        </div>
+
+        <!-- New conversation user picker (hidden by default) -->
+        <div id="newMsgBox" style="display:none;" class="p-2 border-bottom">
+            <input type="text" class="form-control form-control-sm mb-1" id="userSearch" placeholder="Search users…" autocomplete="off">
+            <div id="userResults" class="list-group"></div>
+        </div>
+
+        <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="convSearch" placeholder="Search messages">
+        </div>
+
+        <div class="conversation-list" id="convList">
+            {% for c in conversations %}
+            <a href="{{ url_for('inbox', user_id=c.user.id) }}"
+               class="conversation-item {% if active_user_id == c.user.id %}active{% endif %}">
+                <div class="conversation-avatar">{{ c.user.username[0].upper() }}</div>
+                <div class="conversation-info">
+                    <div class="conversation-top">
+                        <h6 class="mb-0">
+                            {{ c.user.username }}
+                            {% if c.unread %}
+                            <span class="badge bg-primary rounded-pill ms-1" style="font-size:0.65rem;">{{ c.unread }}</span>
+                            {% endif %}
+                        </h6>
+                        <span>{{ c.last_msg.sent_at.strftime('%H:%M') if c.last_msg.sent_at.date() == now.date() else c.last_msg.sent_at.strftime('%d %b') }}</span>
+                    </div>
+                    <p class="mb-0 text-truncate">{{ c.last_msg.content }}</p>
+                </div>
+            </a>
+            {% else %}
+            <p class="text-muted p-3">No conversations yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Right panel: active thread -->
+    <section class="chat-panel">
+        {% if other_user %}
+
+        <div class="chat-header">
+            <div class="conversation-avatar me-2">{{ other_user.username[0].upper() }}</div>
+            <div>
+                <h5 class="mb-0">{{ other_user.username }}</h5>
+                <p class="mb-0 text-muted" style="font-size:0.85rem;">{{ other_user.role | capitalize }}</p>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            {% for msg in thread_messages %}
+            <div class="message-row {% if msg.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                <div class="message-bubble">{{ msg.content }}</div>
+                <div class="message-time">{{ msg.sent_at.strftime('%H:%M') }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <form class="chat-input-area" method="POST" action="{{ url_for('send_message', user_id=other_user.id) }}">
+            <input type="text" name="body" id="messageInput" placeholder="Type your message here…" autocomplete="off" required>
+            <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+
+        {% else %}
+
+        <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+            <p>Select a conversation or start a new one.</p>
+        </div>
+
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="usersData">
+[{% for u in all_users %}{"id": {{ u.id }}, "name": "{{ u.username }}"}{% if not loop.last %},{% endif %}{% endfor %}]
+</script>
+
+<script>
+const chatMessages = document.getElementById('chatMessages');
+if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+
+document.getElementById('convSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        const name = item.querySelector('h6').textContent.toLowerCase();
+        const preview = item.querySelector('p').textContent.toLowerCase();
+        item.style.display = (name.includes(q) || preview.includes(q)) ? '' : 'none';
+    });
+});
+
+const users = JSON.parse(document.getElementById('usersData').textContent);
+
+document.getElementById('newMsgBtn').addEventListener('click', function() {
+    const box = document.getElementById('newMsgBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    if (box.style.display === 'block') document.getElementById('userSearch').focus();
+});
+
+document.getElementById('userSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const results = document.getElementById('userResults');
+    results.innerHTML = '';
+    if (!q) return;
+    users.filter(u => u.name.toLowerCase().includes(q)).forEach(u => {
+        const a = document.createElement('a');
+        a.href = '/messages?user_id=' + u.id;
+        a.className = 'list-group-item list-group-item-action py-1';
+        a.textContent = u.name;
+        results.appendChild(a);
+    });
+});
+</script>
+{% endblock %}

@@ -632,7 +632,9 @@ def inbox():
                            thread_messages=thread_messages,
                            other_user=other_user,
                            active_user_id=active_user_id,
-                           all_users=all_users)
+                           all_users=all_users,
+                           now = datetime.now(timezone.utc)
+                           )
 
 
 @app.route('/messages/<int:user_id>/send', methods=['POST'])
