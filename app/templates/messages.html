@@ -1,129 +1,112 @@
 {% extends "base.html" %}
 
 {% block title %}Messages{% endblock %}
-{% block page_title %}Messaging system{% endblock %}
+{% block page_title %}Messages{% endblock %}
 
 {% block content %}
 <div class="messages-layout">
 
     <!-- Left panel: conversation list -->
-    <section class="conversation-panel">
+    <div class="conversation-panel main-card p-0">
         <div class="panel-header d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Messages</h2>
-            <button class="btn btn-sm btn-primary" id="newMsgBtn">+ New</button>
+            <h2>Messages</h2>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#composeModal"
+                    title="New message">✏️</button>
         </div>
 
-        <!-- New conversation user picker (hidden by default) -->
-        <div id="newMsgBox" style="display:none;" class="p-2 border-bottom">
-            <input type="text" class="form-control form-control-sm mb-1" id="userSearch" placeholder="Search users…" autocomplete="off">
-            <div id="userResults" class="list-group"></div>
-        </div>
-
-        <div class="search-box">
-            <span>🔍</span>
-            <input type="text" id="convSearch" placeholder="Search messages">
-        </div>
-
-        <div class="conversation-list" id="convList">
-            {% for c in conversations %}
-            <a href="{{ url_for('inbox', user_id=c.user.id) }}"
-               class="conversation-item {% if active_user_id == c.user.id %}active{% endif %}">
-                <div class="conversation-avatar">{{ c.user.username[0].upper() }}</div>
+        <div class="conversation-list">
+            {% for conv in conversations %}
+            <a href="{{ url_for('inbox', user_id=conv.user.id) }}"
+               class="conversation-item text-decoration-none {% if active_user_id == conv.user.id %}active{% endif %}">
+                <div class="conversation-avatar">{{ conv.user.username[0].upper() }}</div>
                 <div class="conversation-info">
                     <div class="conversation-top">
-                        <h6 class="mb-0">
-                            {{ c.user.username }}
-                            {% if c.unread %}
-                            <span class="badge bg-primary rounded-pill ms-1" style="font-size:0.65rem;">{{ c.unread }}</span>
-                            {% endif %}
-                        </h6>
-                        <span>{{ c.last_msg.sent_at.strftime('%H:%M') if c.last_msg.sent_at.date() == now.date() else c.last_msg.sent_at.strftime('%d %b') }}</span>
+                        <strong style="{% if conv.unread %}font-weight:700;{% endif %}">{{ conv.user.username }}</strong>
+                        <span>{{ conv.last_msg.sent_at.strftime('%d %b') }}</span>
                     </div>
-                    <p class="mb-0 text-truncate">{{ c.last_msg.content }}</p>
+                    <p>
+                        {% if conv.last_msg.sender_id == current_user.id %}You: {% endif %}
+                        {{ conv.last_msg.content[:55] }}{% if conv.last_msg.content|length > 55 %}…{% endif %}
+                    </p>
                 </div>
+                {% if conv.unread %}
+                <span class="badge bg-primary rounded-pill align-self-center ms-1">{{ conv.unread }}</span>
+                {% endif %}
             </a>
             {% else %}
-            <p class="text-muted p-3">No conversations yet.</p>
+            <p class="p-3 text-muted" style="font-size:0.9rem;">No conversations yet.</p>
             {% endfor %}
         </div>
-    </section>
+    </div>
 
-    <!-- Right panel: active thread -->
-    <section class="chat-panel">
+    <!-- Right panel: thread or placeholder -->
+    <div class="chat-panel main-card p-0">
         {% if other_user %}
 
         <div class="chat-header">
-            <div class="conversation-avatar me-2">{{ other_user.username[0].upper() }}</div>
-            <div>
-                <h5 class="mb-0">{{ other_user.username }}</h5>
-                <p class="mb-0 text-muted" style="font-size:0.85rem;">{{ other_user.role | capitalize }}</p>
-            </div>
+            <h5>{{ other_user.username }}</h5>
+            <p>{{ other_user.role | capitalize }}</p>
         </div>
 
         <div class="chat-messages" id="chatMessages">
             {% for msg in thread_messages %}
             <div class="message-row {% if msg.sender_id == current_user.id %}sent{% else %}received{% endif %}">
-                <div class="message-bubble">{{ msg.content }}</div>
-                <div class="message-time">{{ msg.sent_at.strftime('%H:%M') }}</div>
+                <div class="message-bubble">
+                    <div>{{ msg.content }}</div>
+                    <small style="opacity:0.6; font-size:0.72rem; display:block; margin-top:4px;">
+                        {{ msg.sent_at.strftime('%d %b, %H:%M') }}
+                    </small>
+                </div>
             </div>
+            {% else %}
+            <p class="text-muted text-center mt-5" style="font-size:0.9rem;">No messages yet — say hello!</p>
             {% endfor %}
         </div>
 
         <form class="chat-input-area" method="POST" action="{{ url_for('send_message', user_id=other_user.id) }}">
-            <input type="text" name="body" id="messageInput" placeholder="Type your message here…" autocomplete="off" required>
-            <button type="submit" class="btn btn-primary">Send</button>
+            <input type="text" name="body" placeholder="Type a message…" required autocomplete="off" autofocus>
+            <button type="submit" class="btn btn-primary px-4">Send</button>
         </form>
 
         {% else %}
 
-        <div class="d-flex align-items-center justify-content-center h-100 text-muted">
-            <p>Select a conversation or start a new one.</p>
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+            <p style="font-size:1rem;">Select a conversation to start messaging.</p>
         </div>
 
         {% endif %}
-    </section>
+    </div>
 
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script type="application/json" id="usersData">
-[{% for u in all_users %}{"id": {{ u.id }}, "name": "{{ u.username }}"}{% if not loop.last %},{% endif %}{% endfor %}]
-</script>
+<!-- Compose modal -->
+<div class="modal fade" id="composeModal" tabindex="-1" aria-labelledby="composeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="composeModalLabel">New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="GET" action="{{ url_for('inbox') }}">
+                <div class="modal-body">
+                    <label class="form-label">Send to</label>
+                    <select name="user_id" class="form-select" required>
+                        <option value="" disabled selected>Select a user…</option>
+                        {% for u in all_users %}
+                        <option value="{{ u.id }}">{{ u.username }} ({{ u.role }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary w-100">Start Conversation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
-const chatMessages = document.getElementById('chatMessages');
-if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-
-document.getElementById('convSearch').addEventListener('input', function() {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('.conversation-item').forEach(item => {
-        const name = item.querySelector('h6').textContent.toLowerCase();
-        const preview = item.querySelector('p').textContent.toLowerCase();
-        item.style.display = (name.includes(q) || preview.includes(q)) ? '' : 'none';
-    });
-});
-
-const users = JSON.parse(document.getElementById('usersData').textContent);
-
-document.getElementById('newMsgBtn').addEventListener('click', function() {
-    const box = document.getElementById('newMsgBox');
-    box.style.display = box.style.display === 'none' ? 'block' : 'none';
-    if (box.style.display === 'block') document.getElementById('userSearch').focus();
-});
-
-document.getElementById('userSearch').addEventListener('input', function() {
-    const q = this.value.toLowerCase();
-    const results = document.getElementById('userResults');
-    results.innerHTML = '';
-    if (!q) return;
-    users.filter(u => u.name.toLowerCase().includes(q)).forEach(u => {
-        const a = document.createElement('a');
-        a.href = '/messages?user_id=' + u.id;
-        a.className = 'list-group-item list-group-item-action py-1';
-        a.textContent = u.name;
-        results.appendChild(a);
-    });
-});
+    const chat = document.getElementById('chatMessages');
+    if (chat) chat.scrollTop = chat.scrollHeight;
 </script>
 {% endblock %}
