@@ -44,7 +44,7 @@ body.login-body {
 }
 
 
-.container {
+.login-container-custom {
     background-color: #3e5c76;
     border-radius: 5px;
     padding: 20px;
@@ -94,6 +94,25 @@ body.login-body {
     border-color:aliceblue;
     text-align: center;
     color: white;
+}
+
+.flash-container {
+    position: fixed;
+    top: 100px;
+    right: 24px;
+    z-index: 9999;
+    width: 320px;
+    pointer-events: none;
+}
+
+.flash-alert {
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 
@@ -685,34 +704,6 @@ body.login-body {
     font-weight: bold;
 }
 
-.class-pill {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    margin-top: 6px;
-    cursor: pointer;
-}
-
-.class-pill.math {
-    background-color: #d6e6f2;
-    border-left: 3px solid #3e5c76;
-}
-
-.class-pill.english {
-    background-color: #dcefe8;
-    border-left: 3px solid #a3d2ca;
-}
-
-.class-pill.science {
-    background-color: #edf3fb;
-    border-left: 3px solid #92bbf9;
-}
-
-.class-pill.history {
-    background-color: #e7edf3;
-    border-left: 3px solid #748cab;
-}
-
 .weekly-list,
 .daily-list {
     display: flex;
@@ -720,46 +711,50 @@ body.login-body {
     gap: 16px;
 }
 
-.week-class,
-.daily-class {
-    padding: 16px;
+.class-pill {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
     border-radius: 8px;
+    margin-top: 6px;
     cursor: pointer;
+    background-color: #f0f4f8; /* fallback */
+    border-left: 4px solid #3e5c76;
 }
 
-.week-class h5,
-.daily-class h5 {
-    margin-top: 0;
-    margin-bottom: 8px;
+.session-info {
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
-.week-class p,
-.daily-class p {
-    margin: 4px 0;
+.session-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
 }
 
-.week-class.math,
-.daily-class.math {
+/* Subject colours */
+.class-pill.mathematics
+.class-pill.maths {
     background-color: #d6e6f2;
-    border-left: 5px solid #3e5c76;
+    border-left-color: #3e5c76;
 }
 
-.week-class.english,
-.daily-class.english {
-    background-color: #dcefe8;
-    border-left: 5px solid #a3d2ca;
-}
-
-.week-class.science,
-.daily-class.science {
+.class-pill.physics
+.class-pill.science {
     background-color: #edf3fb;
-    border-left: 5px solid #92bbf9;
+    border-left-color: #92bbf9;
 }
 
-.week-class.history,
-.daily-class.history {
-    background-color: #e7edf3;
-    border-left: 5px solid #748cab;
+.class-pill.computer-science {
+    background-color: #dcefe8;
+    border-left-color: #a3d2ca;
+}
+
+.class-pill.english {
+    background-color: #fff3cd;
+    border-left-color: #ffc107;
 }
 
 .class-details-box {

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from app.models import User, TutorProfile, Session, Review, Conversation, ConversationParticipant, Message
+from app.models import User, TutorProfile, Session, Booking, Review, Conversation, ConversationParticipant, Message
 from app.forms import LoginForm, RegisterForm, ForgotPasswordForm
 import calendar
 
@@ -58,24 +58,42 @@ def inject_profile_data():
         sessions_run = Session.query.filter_by(tutor_id=current_user.id, status='completed').count()
         upcoming = (Session.query
                     .filter_by(tutor_id=current_user.id)
-                    .filter(Session.datetime > now, Session.status.in_(['pending', 'confirmed']))
+                    .filter(Session.datetime > now, Session.status == 'scheduled')
                     .order_by(Session.datetime)
                     .limit(3).all())
         return dict(tutor_profile=profile, sessions_run=sessions_run, upcoming_sessions=upcoming)
     else:
-        sessions_attended = Session.query.filter_by(student_id=current_user.id, status='completed').count()
+        student_bookings = Booking.query.filter_by(student_id=current_user.id).all()
+        student_session_ids = [booking.session_id for booking in student_bookings]
+
+        sessions_attended = (
+            Session.query
+            .filter(Session.id.in_(student_session_ids), Session.status == 'completed')
+            .count()
+        )
+
         three_months_ago = now - timedelta(days=90)
-        recent_feedback_sessions = (Session.query
-                                    .filter_by(student_id=current_user.id, status='completed')
-                                    .filter(Session.feedback.isnot(None))
-                                    .filter(Session.datetime >= three_months_ago)
-                                    .order_by(Session.datetime.desc())
-                                    .limit(10).all())
-        upcoming = (Session.query
-                    .filter_by(student_id=current_user.id)
-                    .filter(Session.datetime > now, Session.status.in_(['pending', 'confirmed']))
-                    .order_by(Session.datetime)
-                    .limit(3).all())
+
+        recent_feedback_sessions = (
+            Session.query
+            .filter(Session.id.in_(student_session_ids))
+            .filter(Session.status == 'completed')
+            .filter(Session.feedback.isnot(None))
+            .filter(Session.datetime >= three_months_ago)
+            .order_by(Session.datetime.desc())
+            .limit(10)
+            .all()
+        )
+
+        upcoming = (
+            Session.query
+            .filter(Session.id.in_(student_session_ids))
+            .filter(Session.datetime > now)
+            .filter(Session.status == 'scheduled')
+            .order_by(Session.datetime)
+            .limit(3)
+            .all()
+        )
         return dict(
             sessions_attended=sessions_attended,
             recent_feedback_sessions=recent_feedback_sessions,
@@ -267,12 +285,192 @@ def me():
 @app.route('/bookings')
 @login_required
 def schedule():
-    if current_user.role == 'tutor':
-        sessions = Session.query.filter_by(tutor_id=current_user.id).order_by(Session.datetime).all()
-    else:
-        sessions = Session.query.filter_by(student_id=current_user.id).order_by(Session.datetime).all()
+    today = datetime.utcnow()
 
-    return render_template('schedule.html', sessions=sessions)
+    year = request.args.get('year', today.year, type=int)
+    month = request.args.get('month', today.month, type=int)
+
+    if current_user.role == 'tutor':
+        sessions = (
+            Session.query
+            .filter_by(tutor_id=current_user.id)
+            .filter(Session.status != 'cancelled')
+            .order_by(Session.datetime)
+            .all()
+        )
+    else:
+        sessions = (
+            Session.query
+            .filter(Session.status != 'cancelled')
+            .order_by(Session.datetime)
+            .all()
+        )
+    sessions_by_day = {}
+
+    for session in sessions:
+        if session.datetime.year == year and session.datetime.month == month:
+            day = session.datetime.day
+            sessions_by_day.setdefault(day, []).append(session)
+    
+    cal = calendar.Calendar(firstweekday=6)  # Sunday start
+    calendar_weeks = cal.monthdayscalendar(year, month)
+
+    prev_month = month - 1
+    prev_year = year
+    if prev_month == 0:
+        prev_month = 12
+        prev_year -= 1
+
+    next_month = month + 1
+    next_year = year
+    if next_month == 13:
+        next_month = 1
+        next_year += 1
+
+    month_name = calendar.month_name[month]
+
+    today_day = today.day
+    today_month = today.month
+    today_year = today.year
+
+    week_sessions = [
+        s for s in sessions
+        if s.datetime.isocalendar()[1] == today.isocalendar()[1]
+        and s.datetime.year == today.year
+    ]
+
+    day_sessions = [
+        s for s in sessions
+        if s.datetime.date() == today.date()
+    ]
+
+    joined_session_ids = []
+
+    if current_user.role == 'student':
+        joined_session_ids = [
+            booking.session_id
+            for booking in Booking.query.filter_by(student_id=current_user.id).all()
+        ]
+
+    return render_template(
+        'schedule.html',
+        sessions=sessions,
+        sessions_by_day=sessions_by_day,
+        calendar_weeks=calendar_weeks,
+        month_name=month_name,
+        month=month,
+        year=year,
+        prev_month=prev_month,
+        prev_year=prev_year,
+        next_month=next_month,
+        next_year=next_year,
+        today_day=today_day,
+        today_month=today_month,
+        today_year=today_year,
+        joined_session_ids=joined_session_ids,
+
+        week_sessions=week_sessions,
+        day_sessions=day_sessions,
+    )
+
+@app.route('/create-session', methods=['POST'])
+@login_required
+def create_session():
+    if current_user.role != 'tutor':
+        flash('Only tutors can create sessions.', 'error')
+        return redirect(url_for('schedule'))
+
+    subject = request.form.get('subject')
+    date = request.form.get('date')
+    time = request.form.get('time')
+    duration = request.form.get('duration')
+    location = request.form.get('location')
+    max_students = request.form.get('max_students', 5)
+
+    if not subject or not date or not time or not duration:
+        flash('Please fill in all required session fields.', 'error')
+        return redirect(url_for('schedule'))
+
+    session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
+
+    new_session = Session(
+        tutor_id=current_user.id,
+        subject=subject,
+        datetime=session_datetime,
+        duration=int(duration),
+        location=location,
+        max_students=int(max_students),
+        status='scheduled'
+    )
+
+    db.session.add(new_session)
+    db.session.commit()
+
+    flash('Session created successfully.', 'success')
+    return redirect(url_for('schedule'))
+
+@app.route('/join-session/<int:session_id>', methods=['POST'])
+@login_required
+def join_session(session_id):
+    if current_user.role != 'student':
+        flash('Only students can join sessions.', 'error')
+        return redirect(url_for('schedule'))
+
+    session = Session.query.get_or_404(session_id)
+
+    existing_booking = Booking.query.filter_by(
+        session_id=session.id,
+        student_id=current_user.id
+    ).first()
+
+    if existing_booking:
+        flash('You have already joined this session.', 'error')
+        return redirect(url_for('schedule'))
+
+    if len(session.bookings) >= session.max_students:
+        flash('This session is full.', 'error')
+        return redirect(url_for('schedule'))
+
+    booking = Booking(
+        session_id=session.id,
+        student_id=current_user.id
+    )
+
+    db.session.add(booking)
+    db.session.commit()
+
+    flash('You joined the session successfully.', 'success')
+    return redirect(url_for('schedule'))
+
+@app.route('/cancel-booking/<int:session_id>', methods=['POST'])
+@login_required
+def cancel_booking(session_id):
+    session = Session.query.get_or_404(session_id)
+
+    if current_user.role == 'tutor':
+        if current_user.id != session.tutor_id:
+            flash('You are not allowed to cancel this session.', 'error')
+            return redirect(url_for('schedule'))
+
+        session.status = 'cancelled'
+        db.session.commit()
+        flash('Session cancelled successfully.', 'success')
+        return redirect(url_for('schedule'))
+
+    booking = Booking.query.filter_by(
+        session_id=session.id,
+        student_id=current_user.id
+    ).first()
+
+    if not booking:
+        flash('You are not booked into this session.', 'error')
+        return redirect(url_for('schedule'))
+
+    db.session.delete(booking)
+    db.session.commit()
+
+    flash('You left the session successfully.', 'success')
+    return redirect(url_for('schedule'))
 
 
 @app.route('/conversations', methods=['POST'])
@@ -326,7 +524,6 @@ def get_messages(conversation_id):
 
         for m in messages
     ]), 200
-
 
 @app.route('/conversations/<int:conversation_id>/messages', methods=['POST'])
 @login_required
@@ -408,3 +605,4 @@ def send_message(user_id):
         db.session.add(msg)
         db.session.commit()
     return redirect(url_for('inbox', user_id=user_id))
+

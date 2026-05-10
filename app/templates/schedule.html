@@ -30,14 +30,10 @@
         </a>
     </div>
 
-    {% if current_user.role == 'student' %}
-    <form method="POST" action="{{ url_for('book_session') }}" class="mb-4">
+    {% if current_user.role == 'tutor' %}
+    <form method="POST" action="{{ url_for('create_session') }}" class="mb-4">
         <div class="row g-2">
-            <div class="col-md-2">
-                <input type="number" name="tutor_id" class="form-control" placeholder="Tutor ID" required>
-            </div>
-
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <input type="text" name="subject" class="form-control" placeholder="Subject" required>
             </div>
 
@@ -50,16 +46,22 @@
             </div>
 
             <div class="col-md-2">
-                <input type="number" name="duration" class="form-control" placeholder="Minutes" value="60" required>
+                <input type="number" name="duration" class="form-control" placeholder="Minutes" value="60" min="1" required>
             </div>
 
             <div class="col-md-2">
                 <input type="text" name="location" class="form-control" placeholder="Location">
             </div>
+
+            <div class="col-md-1">
+                <input type="number" name="max_students" class="form-control" value="5" min="1" max="5" title="Max students">
+            </div>
         </div>
 
-        <button type="submit" class="btn btn-primary mt-2">Create Booking</button>
+        <button type="submit" class="btn btn-primary mt-2">Create Session</button>
     </form>
+    {% else %}
+        <p class="text-muted mb-4">Choose an available tutor session below and click Join Session.</p>
     {% endif %}
 
     <div id="monthlyView">
@@ -81,25 +83,49 @@
                             <p class="day-number">{{ day }}</p>
 
                             {% for session in sessions_by_day.get(day, []) %}
-                                <div class="class-pill math"
-                                     onclick="showDetails(
+                                <div class="class-pill {{ session.subject|lower|replace(' ', '-') }}"
+                                    onclick="showDetails(
                                         '{{ session.subject }}',
                                         '{{ session.datetime.strftime("%d %b %Y, %I:%M %p") }}',
                                         '{{ session.tutor.username }}',
                                         '{{ session.location or "No location set" }}',
-                                        '{{ session.status }}'
-                                     )">
-                                    {{ session.subject }}
-                                    <br>
-                                    <small>{{ session.datetime.strftime("%I:%M %p") }}</small>
-                                    <br>
-                                    <small>{{ session.location or "No location set" }}</small>
+                                        '{{ session.status }}',
+                                        '{{ session.bookings|length }}/{{ session.max_students }}'
+                                    )">
 
-                                    <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}" onclick="event.stopPropagation();">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger mt-2">
-                                            Cancel
-                                        </button>
-                                    </form>
+                                    <div class="session-info">
+                                        <strong>{{ session.subject }}</strong><br>
+                                        {{ session.datetime.strftime("%I:%M %p") }}<br>
+                                        {{ session.location or "No location set" }}<br>
+                                        Tutor: {{ session.tutor.username }}<br>
+                                        {{ session.bookings|length }}/{{ session.max_students }} students
+                                    </div>
+
+                                    <div class="session-actions" onclick="event.stopPropagation();">
+                                        {% if current_user.role == 'student' %}
+                                            {% if session.id in joined_session_ids %}
+                                                <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        Leave
+                                                    </button>
+                                                </form>
+                                            {% elif session.bookings|length < session.max_students %}
+                                                <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-primary">
+                                                        Join
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-secondary" disabled>Full</button>
+                                            {% endif %}
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Cancel
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
@@ -114,37 +140,50 @@
             <p><strong>Tutor:</strong> <span id="classTutor">-</span></p>
             <p><strong>Location:</strong> <span id="classLocation">-</span></p>
             <p><strong>Status:</strong> <span id="classStatus">-</span></p>
+            <p><strong>Students:</strong> <span id="classStudents">-</span></p>
         </div>
     </div>
 
     <div id="weeklyView" style="display: none;">
         <div class="weekly-list">
             {% for session in week_sessions %}
-                <div class="week-class math"
-                     onclick="showDetails(
+                <div class="class-pill {{ session.subject|lower|replace(' ', '-') }}"
+                    onclick="showDetails(
                         '{{ session.subject }}',
                         '{{ session.datetime.strftime("%A, %d %b %Y, %I:%M %p") }}',
                         '{{ session.tutor.username }}',
                         '{{ session.location or "No location set" }}',
-                        '{{ session.status }}'
-                     )">
-                    <h5>{{ session.datetime.strftime("%A") }}</h5>
-                    <p>{{ session.subject }} - {{ session.datetime.strftime("%I:%M %p") }}</p>
-                    <p>
-                        {% if current_user.role == 'student' %}
-                            Tutor: {{ session.tutor.username }}
-                        {% else %}
-                            Student: {{ session.student.username }}
-                        {% endif %}
-                    </p>
-                    <p>Status: {{ session.status }}</p>
-                    <p>Location: {{ session.location or "No location set" }}</p>
+                        '{{ session.status }}',
+                        '{{ session.bookings|length }}/{{ session.max_students }}'
+                    )">
 
-                    <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}" onclick="event.stopPropagation();">
-                        <button type="submit" class="btn btn-sm btn-outline-danger mt-2">
-                            Cancel
-                        </button>
-                    </form>
+                    <div class="session-info">
+                        <strong>{{ session.subject }}</strong><br>
+                        {{ session.datetime.strftime("%I:%M %p") }}<br>
+                        Tutor: {{ session.tutor.username }}<br>
+                        {{ session.bookings|length }}/{{ session.max_students }} students
+                    </div>
+
+                    <div class="session-actions" onclick="event.stopPropagation();">
+                        {% if current_user.role == 'student' %}
+                            {% if session.id in joined_session_ids %}
+                                <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
+                                </form>
+                            {% elif session.bookings|length < session.max_students %}
+                                <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-sm btn-secondary" disabled>Full</button>
+                            {% endif %}
+                        {% else %}
+                            <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                            </form>
+                        {% endif %}
+                    </div>
+
                 </div>
             {% else %}
                 <p class="text-muted">No sessions scheduled</p>
@@ -155,31 +194,44 @@
     <div id="dailyView" style="display: none;">
         <div class="daily-list">
             {% for session in day_sessions %}
-                <div class="daily-class math"
-                     onclick="showDetails(
+                <div class="class-pill {{ session.subject|lower|replace(' ', '-') }}"
+                    onclick="showDetails(
                         '{{ session.subject }}',
                         '{{ session.datetime.strftime("%I:%M %p") }}',
                         '{{ session.tutor.username }}',
                         '{{ session.location or "No location set" }}',
-                        '{{ session.status }}'
-                     )">
-                    <h5>{{ session.datetime.strftime("%I:%M %p") }}</h5>
-                    <p>{{ session.subject }}</p>
-                    <p>
-                        {% if current_user.role == 'student' %}
-                            Tutor: {{ session.tutor.username }}
-                        {% else %}
-                            Student: {{ session.student.username }}
-                        {% endif %}
-                    </p>
-                    <p>Status: {{ session.status }}</p>
-                    <p>Location: {{ session.location or "No location set" }}</p>
+                        '{{ session.status }}',
+                        '{{ session.bookings|length }}/{{ session.max_students }}'
+                    )">
 
-                    <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}" onclick="event.stopPropagation();">
-                        <button type="submit" class="btn btn-sm btn-outline-danger mt-2">
-                            Cancel
-                        </button>
-                    </form>
+                    <div class="session-info">
+                        <strong>{{ session.subject }}</strong><br>
+                        {{ session.datetime.strftime("%I:%M %p") }}<br>
+                        {{ session.location or "No location set" }}<br>
+                        Tutor: {{ session.tutor.username }}<br>
+                        {{ session.bookings|length }}/{{ session.max_students }} students
+                    </div>
+
+                    <div class="session-actions" onclick="event.stopPropagation();">
+                        {% if current_user.role == 'student' %}
+                            {% if session.id in joined_session_ids %}
+                                <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
+                                </form>
+                            {% elif session.bookings|length < session.max_students %}
+                                <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-sm btn-secondary" disabled>Full</button>
+                            {% endif %}
+                        {% else %}
+                            <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                            </form>
+                        {% endif %}
+                    </div>
+
                 </div>
             {% else %}
                 <p class="text-muted">No sessions today</p>
@@ -202,20 +254,16 @@
         document.getElementById(view + "View").style.display = "block";
         document.getElementById(view + "Btn").classList.add("active");
 
-        if (view === "monthly") {
-            document.getElementById("monthlyDetails").style.display = "block";
-        } else {
-            document.getElementById("monthlyDetails").style.display = "none";
-        }
     }
 
-    function showDetails(name, time, tutor, location, status) {
+    function showDetails(name, time, tutor, location, status, students) {
         document.getElementById("detailsBox").style.display = "block";
         document.getElementById("className").textContent = name;
         document.getElementById("classTime").textContent = time;
         document.getElementById("classTutor").textContent = tutor;
         document.getElementById("classLocation").textContent = location;
         document.getElementById("classStatus").textContent = status;
+        document.getElementById("classStudents").textContent = students;
     }
 </script>
 
