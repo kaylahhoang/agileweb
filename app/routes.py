@@ -324,10 +324,19 @@ def me():
 @app.route('/bookings')
 @login_required
 def schedule():
-    today = datetime.utcnow()
+    now = datetime.today()
+    today = now.date()
 
-    year = request.args.get('year', today.year, type=int)
-    month = request.args.get('month', today.month, type=int)
+    view = request.args.get('view', 'monthly')
+    selected_date_str = request.args.get('date')
+
+    if selected_date_str:
+        selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    else:
+        selected_date = today
+
+    year = request.args.get('year', selected_date.year, type=int)
+    month = request.args.get('month', selected_date.month, type=int)
 
     if current_user.role == 'tutor':
         sessions = (
@@ -344,14 +353,37 @@ def schedule():
             .order_by(Session.datetime)
             .all()
         )
+
     sessions_by_day = {}
 
     for session in sessions:
         if session.datetime.year == year and session.datetime.month == month:
             day = session.datetime.day
             sessions_by_day.setdefault(day, []).append(session)
-    
-    cal = calendar.Calendar(firstweekday=6)  # Sunday start
+
+    start_of_week = selected_date - timedelta(days=selected_date.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+
+    week_sessions = [
+        s for s in sessions
+        if start_of_week <= s.datetime.date() <= end_of_week
+    ]
+
+    day_sessions = [
+        s for s in sessions
+        if s.datetime.date() == selected_date
+    ]
+
+    prev_week = selected_date - timedelta(days=7)
+    next_week = selected_date + timedelta(days=7)
+
+    prev_day = selected_date - timedelta(days=1)
+    next_day = selected_date + timedelta(days=1)
+
+    week_title = f"{start_of_week.strftime('%d %b %Y')} - {end_of_week.strftime('%d %b %Y')}"
+    day_title = selected_date.strftime('%A, %d %B %Y')
+
+    cal = calendar.Calendar(firstweekday=6)
     calendar_weeks = cal.monthdayscalendar(year, month)
 
     prev_month = month - 1
@@ -371,17 +403,6 @@ def schedule():
     today_day = today.day
     today_month = today.month
     today_year = today.year
-
-    week_sessions = [
-        s for s in sessions
-        if s.datetime.isocalendar()[1] == today.isocalendar()[1]
-        and s.datetime.year == today.year
-    ]
-
-    day_sessions = [
-        s for s in sessions
-        if s.datetime.date() == today.date()
-    ]
 
     joined_session_ids = []
 
@@ -406,10 +427,18 @@ def schedule():
         today_day=today_day,
         today_month=today_month,
         today_year=today_year,
+        today_date=today,
         joined_session_ids=joined_session_ids,
-
         week_sessions=week_sessions,
         day_sessions=day_sessions,
+        view=view,
+        selected_date=selected_date,
+        prev_week=prev_week,
+        next_week=next_week,
+        prev_day=prev_day,
+        next_day=next_day,
+        week_title=week_title,
+        day_title=day_title
     )
 
 @app.route('/create-session', methods=['POST'])

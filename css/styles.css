@@ -666,6 +666,24 @@ body.login-body {
     margin: 0;
 }
 
+.today-btn {
+    background-color: #3e5c76;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    display: inline-block;
+}
+
+.today-btn:hover {
+    background-color: #2f485f;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(100px, 1fr));
@@ -735,26 +753,48 @@ body.login-body {
 }
 
 /* Subject colours */
-.class-pill.mathematics
-.class-pill.maths {
+.class-pill.mathematics,
+.class-pill.maths,
+.class-pill.math {
     background-color: #d6e6f2;
     border-left-color: #3e5c76;
 }
 
-.class-pill.physics
+.class-pill.physics,
+.class-pill.chemistry,
+.class-pill.biology,
 .class-pill.science {
     background-color: #edf3fb;
     border-left-color: #92bbf9;
 }
 
-.class-pill.computer-science {
+.class-pill.computer-science
+.class-pill.data-structures,
+.class-pill.algorithms,
+.class-pill.python {
     background-color: #dcefe8;
     border-left-color: #a3d2ca;
 }
 
-.class-pill.english {
+.class-pill.english,
+.class-pill.literature {
     background-color: #fff3cd;
     border-left-color: #ffc107;
+}
+
+.class-pill.business,
+.class-pill.economics,
+.class-pill.accounting {
+    background-color: #eadcff;
+    border-left-color: #8e6ad8;
+}
+
+.class-pill.history,
+.class-pill.geography,
+.class-pill.social-studies
+.class-pill.politics {
+    background-color: #f8d7da;
+    border-left-color: #dc3545;
 }
 
 .class-details-box {
@@ -771,6 +811,16 @@ body.login-body {
 
 .class-details-box p {
     margin: 8px 0;
+}
+
+.view-btn {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.view-btn:hover {
+    color: white;
+    text-decoration: none;
 }
 
 /* Messages page */
