@@ -577,19 +577,18 @@ def get_conversations():
 
 @app.route('/conversations/<int:conversation_id>/messages', methods=['GET'])
 def get_messages(conversation_id):
-    messages = Message.query.filter_by(
-        conversation_id=conversation_id
-    
-    ).order_by(Message.sent_at.asc()).all()
-
+    since_id = request.args.get('since_id', 0, type=int)
+    q = Message.query.filter_by(conversation_id=conversation_id)
+    if since_id:
+        q = q.filter(Message.id > since_id)
+    messages = q.order_by(Message.sent_at.asc()).all()
     return jsonify([
         {
             'id': m.id,
             'sender_id': m.sender_id,
             'content': m.content,
-            'sent_at': m.sent_at
+            'sent_at': m.sent_at.strftime('%H:%M')
         }
-
         for m in messages
     ]), 200
 
@@ -643,10 +642,12 @@ def inbox():
     active_user_id = request.args.get('user_id', type=int)
     thread_messages = []
     other_user = None
+    active_conv_id = None
 
     if active_user_id:
         other_user = User.query.get_or_404(active_user_id)
         active_conv = _get_or_create_conversation(uid, active_user_id)
+        active_conv_id = active_conv.id
         thread_messages = active_conv.messages
         for msg in thread_messages:
             if msg.sender_id != uid and msg.read_at is None:
@@ -660,8 +661,9 @@ def inbox():
                            thread_messages=thread_messages,
                            other_user=other_user,
                            active_user_id=active_user_id,
+                           active_conv_id=active_conv_id,
                            all_users=all_users,
-                           now = datetime.now(timezone.utc)
+                           now=datetime.now(timezone.utc)
                            )
 
 
@@ -669,11 +671,15 @@ def inbox():
 @login_required
 def send_message(user_id):
     content = request.form.get('body', '').strip()
-    if content:
-        conv = _get_or_create_conversation(current_user.id, user_id)
-        msg = Message(conversation_id=conv.id, sender_id=current_user.id, content=content)
-        db.session.add(msg)
-        db.session.commit()
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if not content:
+        return (jsonify({'error': 'empty'}), 400) if is_ajax else redirect(url_for('inbox', user_id=user_id))
+    conv = _get_or_create_conversation(current_user.id, user_id)
+    msg = Message(conversation_id=conv.id, sender_id=current_user.id, content=content)
+    db.session.add(msg)
+    db.session.commit()
+    if is_ajax:
+        return jsonify({'id': msg.id, 'content': msg.content, 'sent_at': msg.sent_at.strftime('%H:%M')}), 201
     return redirect(url_for('inbox', user_id=user_id))
 
 

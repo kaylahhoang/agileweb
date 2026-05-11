@@ -105,8 +105,74 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+{% if other_user %}
+<script type="application/json" id="pageData">
+{
+    "convId": {{ active_conv_id }},
+    "otherUserId": {{ other_user.id }},
+    "currentUserId": {{ current_user.id }},
+    "lastMsgId": {{ thread_messages[-1].id if thread_messages else 0 }}
+}
+</script>
+{% endif %}
 <script>
-    const chat = document.getElementById('chatMessages');
-    if (chat) chat.scrollTop = chat.scrollHeight;
+const chat = document.getElementById('chatMessages');
+if (chat) chat.scrollTop = chat.scrollHeight;
+
+const pageDataEl = document.getElementById('pageData');
+if (pageDataEl) {
+    const { convId, otherUserId, currentUserId, lastMsgId } = JSON.parse(pageDataEl.textContent);
+    let lastId = lastMsgId;
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function appendMessage(content, isSent, time) {
+        const placeholder = chat.querySelector('.text-muted.text-center');
+        if (placeholder) placeholder.remove();
+        const row = document.createElement('div');
+        row.className = 'message-row ' + (isSent ? 'sent' : 'received');
+        row.innerHTML = `<div class="message-bubble"><div>${escapeHtml(content)}</div><small style="opacity:0.6;font-size:0.72rem;display:block;margin-top:4px;">${time}</small></div>`;
+        chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    const sendForm = document.querySelector('.chat-input-area');
+    if (sendForm) {
+        sendForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = sendForm.querySelector('input[name="body"]');
+            const content = input.value.trim();
+            if (!content) return;
+            const resp = await fetch(sendForm.action, {
+                method: 'POST',
+                body: new FormData(sendForm),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                lastId = data.id;
+                appendMessage(data.content, true, data.sent_at);
+                input.value = '';
+            }
+        });
+    }
+
+    setInterval(async () => {
+        const resp = await fetch(`/conversations/${convId}/messages?since_id=${lastId}`);
+        if (!resp.ok) return;
+        const msgs = await resp.json();
+        msgs.forEach(m => {
+            if (m.sender_id !== currentUserId) {
+                appendMessage(m.content, false, m.sent_at);
+            }
+            lastId = m.id;
+        });
+    }, 3000);
+}
 </script>
 {% endblock %}
