@@ -461,11 +461,62 @@ def create_session():
 
     session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
 
+    duration = int(duration)
+    new_start = session_datetime
+    new_end = new_start + timedelta(minutes=duration)
+
+    # Check tutor availability
+    profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
+
+    if not profile or not profile.availability:
+        flash('Please set your availability before creating sessions.', 'error')
+        return redirect(url_for('schedule'))
+
+    try:
+        availability = json.loads(profile.availability)
+    except (json.JSONDecodeError, TypeError):
+        availability = {}
+
+    day_name = new_start.strftime('%A').lower()
+    day_availability = availability.get(day_name)
+
+    if not day_availability:
+        flash('You are not available on this day.', 'error')
+        return redirect(url_for('schedule'))
+
+    avail_start = datetime.strptime(
+        f'{date} {day_availability["start"]}',
+        '%Y-%m-%d %H:%M'
+    )
+
+    avail_end = datetime.strptime(
+        f'{date} {day_availability["end"]}',
+        '%Y-%m-%d %H:%M'
+    )
+
+    if new_start < avail_start or new_end > avail_end:
+        flash('Session must be within your available hours.', 'error')
+        return redirect(url_for('schedule'))
+
+    # Check overlapping sessions
+    existing_sessions = Session.query.filter_by(
+        tutor_id=current_user.id,
+        status='scheduled'
+    ).all()
+
+    for existing in existing_sessions:
+        existing_start = existing.datetime
+        existing_end = existing_start + timedelta(minutes=existing.duration)
+
+        if new_start < existing_end and new_end > existing_start:
+            flash('This session overlaps with another session you already created.', 'error')
+            return redirect(url_for('schedule'))
+
     new_session = Session(
         tutor_id=current_user.id,
         subject=subject,
         datetime=session_datetime,
-        duration=int(duration),
+        duration=duration,
         location=location,
         max_students=int(max_students),
         status='scheduled'
