@@ -69,7 +69,7 @@ def login():
         user = User.query.filter_by(username=login_form.username.data).first()
         if user and user.check_password(login_form.password.data):
             login_user(user)
-            return redirect(url_for('tutors'))  # replace with dashboard route later
+            return redirect(url_for('dashboard'))
         flash('Invalid username or password', 'login_error')
 
     return render_template('login.html', login_form=login_form, register_form=register_form)
@@ -395,3 +395,99 @@ def cancel_booking(session_id):
 
     flash('Booking cancelled successfully.', 'success')
     return redirect(url_for('schedule'))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD THIS BLOCK TO YOUR EXISTING routes.py
+#
+# Place it after the existing imports and helper functions,
+# alongside your other @app.route definitions.
+#
+# No new imports are needed — everything below is already imported in routes.py:
+#   datetime, timedelta, timezone, login_required, current_user,
+#   app, db, User, Session, Review
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    now = datetime.now(timezone.utc)
+
+    # ── 1. UPCOMING SESSIONS ─────────────────────────────────────────────────
+    # Reuses the same query pattern as inject_profile_data() and /bookings,
+    # but fetches up to 5 rows and branches on role — identical to how
+    # /bookings does it.
+    if current_user.role == 'tutor':
+        upcoming_sessions = (
+            Session.query
+            .filter_by(tutor_id=current_user.id)
+            .filter(Session.datetime > now)
+            .filter(Session.status.in_(['scheduled', 'confirmed', 'pending']))
+            .order_by(Session.datetime)
+            .limit(5)
+            .all()
+        )
+    else:
+        upcoming_sessions = (
+            Session.query
+            .filter_by(student_id=current_user.id)
+            .filter(Session.datetime > now)
+            .filter(Session.status.in_(['scheduled', 'confirmed', 'pending']))
+            .order_by(Session.datetime)
+            .limit(5)
+            .all()
+        )
+
+    # ── 2. RECENT REVIEWS ────────────────────────────────────────────────────
+    # Tutors  → reviews they received (shown in "Recent Feedback" card)
+    # Students → reviews they wrote   (their own feedback history)
+    if current_user.role == 'tutor':
+        recent_reviews = (
+            Review.query
+            .filter_by(tutor_id=current_user.id)
+            .order_by(Review.created_at.desc())
+            .limit(3)
+            .all()
+        )
+    else:
+        recent_reviews = (
+            Review.query
+            .filter_by(student_id=current_user.id)
+            .order_by(Review.created_at.desc())
+            .limit(3)
+            .all()
+        )
+
+    # ── 3. AVERAGE RATING ────────────────────────────────────────────────────
+    # Only meaningful for tutors; students see their own given ratings average.
+    if current_user.role == 'tutor':
+        raw_avg = (
+            db.session.query(db.func.avg(Review.rating))
+            .filter_by(tutor_id=current_user.id)
+            .scalar()
+        )
+    else:
+        raw_avg = (
+            db.session.query(db.func.avg(Review.rating))
+            .filter_by(student_id=current_user.id)
+            .scalar()
+        )
+    avg_rating = round(float(raw_avg), 1) if raw_avg is not None else None
+
+    # ── 4. UNREAD MESSAGES COUNT ─────────────────────────────────────────────
+    # The project does not yet have a Message model.
+    # Set to 0 for now; replace with a real query when messaging is built:
+    #
+    #   unread_count = Message.query.filter_by(
+    #       recipient_id=current_user.id, read=False
+    #   ).count()
+    #
+    unread_count = 0
+
+    return render_template(
+        'dashboard.html',
+        upcoming_sessions=upcoming_sessions,   # list[Session]
+        recent_reviews=recent_reviews,         # list[Review]
+        avg_rating=avg_rating,                 # float | None
+        unread_count=unread_count,             # int
+        now=now,                               # used in template for date display
+    )
