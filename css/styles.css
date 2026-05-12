@@ -44,23 +44,6 @@ body.login-body {
 }
 
 
-.login-container-custom {
-    background-color: #3e5c76;
-    border-radius: 5px;
-    padding: 20px;
-    margin-top: 20px;
-    color: #ffffff;
-}
-
-.login-container {
-    background-color: #3e5c76;
-    width:50%;
-    height: 100vh;
-    position: relative;
-    border-radius: 10px;
-    color: #ffffff;
-    overflow: hidden;
-}
 
 .tutor-container {
     display: grid;
@@ -258,43 +241,6 @@ body.login-body {
     text-decoration: underline;
 }
 
-.blue .login-footer {
-    width: 80%;
-    border-top: 1px solid #cacaca;
-    padding: 20px;
-    margin-top: 40px;
-}
-
-.flex-row {
-    display: flex;
-    flex-direction: row;
-    gap:10px;
-    width: 100%;
-}
-
-.sign-app-buttons .google, .sign-app-buttons .apple{
-    margin-top: 10px;
-    width: 50%;
-    height: 50px;
-    border-radius: 10em;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: 500;
-    gap: 10px;
-    border: 1px solid #ededef;
-    background-color: white;
-    cursor: pointer;
-    transition: 0.2s ease-in-out;
-}
-
-.google svg {
-    height: 24px;
-}
-
-.sign-app-buttons .google:hover, .sign-app-buttons .apple:hover {
-    transform: scale(1.02);
-}
 
 
 .blue .register_input {
