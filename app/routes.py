@@ -190,7 +190,7 @@ def reset_password(token):
         flash('Your password has been reset. Please log in.', 'success')
         return redirect(url_for('login'))
     
-    return render_template('reset_password.html', form=form, token=token)
+    return render_template('resetpassword.html', form=form, token=token)
     
 
 @app.route('/tutors')
