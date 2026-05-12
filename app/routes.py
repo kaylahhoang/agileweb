@@ -464,7 +464,7 @@ def create_session():
     session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
 
 
-     duration = int(duration)
+    duration = int(duration)
     new_start = session_datetime
     new_end = new_start + timedelta(minutes=duration)
 
