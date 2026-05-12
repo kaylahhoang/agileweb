@@ -100,8 +100,7 @@ class SeleniumTestCase(unittest.TestCase):
     def tearDown(self):
         self.driver.quit()
         with app.app_context():
-            db.session.remove()
-            db.drop_all()
+            self._cleanup_test_data()
 
     # Helper method to log in
     def login(self, username, password):
@@ -112,48 +111,48 @@ class SeleniumTestCase(unittest.TestCase):
 
     # Tests
     def test_login_student(self):
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         WebDriverWait(self.driver, 10).until(
             EC.title_contains("Dashboard")
         )
         self.assertIn("Dashboard", self.driver.title)
 
     def test_login_tutor(self):
-        self.login("kaylah", "password123")
+        self.login(self.TEST_TUTOR, "password123")
         WebDriverWait(self.driver, 10).until(
             EC.title_contains("Dashboard")
         )
         self.assertIn("Dashboard", self.driver.title)
 
     def test_invalid_login_shows_error(self):
-        self.login("kennice", "wrongpassword")
+        self.login(self.TEST_STUDENT, "wrongpassword")
         error = self.driver.find_element(By.CLASS_NAME, "flash-error")
         self.assertIn("Invalid", error.text)
 
     def test_student_dashboard_shows_feedback_from_tutors(self):
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         self.driver.get(f"{self.base_url}/dashboard")
         body = self.driver.find_element(By.TAG_NAME, "body").text
         self.assertIn("Feedback from Tutors", body)
         self.assertNotIn("Write student Feedback", body)
 
     def test_tutor_dashboard_shows_write_feedback(self):
-        self.login("kaylah", "password123")
+        self.login(self.TEST_TUTOR, "password123")
         self.driver.get(f"{self.base_url}/dashboard")
         body = self.driver.find_element(By.TAG_NAME, "body").text
         self.assertIn("Write student Feedback", body)
 
     
     def test_tutors_page_loads(self):
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
         self.driver.get(f"{self.base_url}/tutors")
         WebDriverWait(self.driver, 10).until(EC.title_contains("Tutors"))
         body = self.driver.find_element(By.TAG_NAME, "body").text
-        self.assertIn("kaylah", body)
+        self.assertIn(self.TEST_TUTOR, body)
 
     def test_logout_redirects_to_login(self):
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
         self.driver.get(f"{self.base_url}/logout")
 
@@ -161,24 +160,24 @@ class SeleniumTestCase(unittest.TestCase):
         self.assertIn("login", self.driver.current_url.lower().replace(self.base_url, "") or "/")
 
     def test_bookings_page_loads(self):
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
         self.driver.get(f"{self.base_url}/bookings")
         WebDriverWait(self.driver, 10).until(EC.title_contains("Schedule"))
         self.assertIn("Session Schedule", self.driver.page_source)
 
     def test_messages_page_loads(self):
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         self.driver.get(f"{self.base_url}/messages")
         heading = self.driver.find_element(By.TAG_NAME, "h2")
         self.assertIn("Messages", heading.text)
 
     def test_new_message_appears_within_3_seconds(self):
         import json as _json
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
 
         with app.app_context():
-            kaylah = User.query.filter_by(username="kaylah").first()
+            kaylah = User.query.filter_by(username=self.TEST_TUTOR).first()
             kaylah_id = kaylah.id
         self.driver.get(f"{self.base_url}/messages?user_id={kaylah_id}")
 
@@ -186,7 +185,7 @@ class SeleniumTestCase(unittest.TestCase):
         conv_id = _json.loads(page_data_el.get_attribute("textContent"))["convId"]
 
         with app.app_context():
-            kaylah = User.query.filter_by(username="kaylah").first()
+            kaylah = User.query.filter_by(username=self.TEST_TUTOR).first()
             msg = Message(
                 conversation_id=conv_id,
                 sender_id=kaylah.id,
@@ -203,7 +202,7 @@ class SeleniumTestCase(unittest.TestCase):
 
     def test_student_can_join_session(self):
         from datetime import date as _date
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
 
         today_str = _date.today().strftime("%Y-%m-%d")
         self.driver.get(f"{self.base_url}/bookings?view=weekly&date={today_str}")
@@ -216,7 +215,7 @@ class SeleniumTestCase(unittest.TestCase):
 
         with app.app_context():
             session = Session.query.first()
-            student = User.query.filter_by(username="kennice").first()
+            student = User.query.filter_by(username=self.TEST_STUDENT).first()
             booking = Booking.query.filter_by(
                 session_id=session.id, student_id=student.id
             ).first()
@@ -224,7 +223,7 @@ class SeleniumTestCase(unittest.TestCase):
 
     def test_student_can_leave_session(self):
         from datetime import date as _date
-        self.login("kennice", "password123")
+        self.login(self.TEST_STUDENT, "password123")
         today_str = _date.today().strftime("%Y-%m-%d")
         self.driver.get(f"{self.base_url}/bookings?view=weekly&date={today_str}")
 
@@ -248,7 +247,7 @@ class SeleniumTestCase(unittest.TestCase):
 
     def test_tutor_can_create_session(self):
         from datetime import date as _date, timedelta
-        self.login("kaylah", "password123")
+        self.login(self.TEST_TUTOR, "password123")
         WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
         self.driver.get(f"{self.base_url}/bookings")
 
