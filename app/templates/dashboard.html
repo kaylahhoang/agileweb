@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-content p-4">
+
+    <div class="dashboard-welcome mb-4">
+        <h2 class="mb-1">Welcome back, {{ current_user.username }}!</h2>
+        <p class="text-muted mb-0">
+            {% if current_user.role == 'tutor' %}
+                Here's an overview of your upcoming sessions and student feedback.
+            {% else %}
+                Here's what's happening with your tutoring today.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="summary-card main-card h-100">
+                <div class="summary-icon">📅</div>
+                <div class="summary-info">
+                    <p class="summary-label">Upcoming Sessions</p>
+                    <p class="summary-value">{{ upcoming_sessions | length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="summary-card main-card h-100">
+                <div class="summary-icon">💬</div>
+                <div class="summary-info">
+                    <p class="summary-label">Unread Messages</p>
+                    <p class="summary-value">{{ unread_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="summary-card main-card h-100">
+                <div class="summary-icon">⭐</div>
+                <div class="summary-info">
+                    <p class="summary-label">Avg. Feedback Rating</p>
+                    <p class="summary-value">
+                        {% if avg_rating is not none %}
+                            {{ avg_rating }} ★
+                        {% else %}
+                            —
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+
+        <div class="col-12 col-lg-7">
+            <div class="main-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0">Upcoming Sessions</h5>
+                    <a href="{{ url_for('schedule') }}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                {% if upcoming_sessions %}
+                    {% for session in upcoming_sessions %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <strong>{{ session.subject }}</strong>
+                            <span class="text-muted ms-2">
+                                {% if current_user.role == 'tutor' %}
+                                    with {{ session.student.username }}
+                                {% else %}
+                                    with {{ session.tutor.username }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="text-end">
+                            <small class="d-block text-muted">
+                                {{ session.datetime.strftime('%a %d %b · %I:%M %p') }}
+                            </small>
+                            <span class="badge
+                                {% if session.status == 'confirmed' %}bg-success
+                                {% elif session.status == 'pending' %}bg-warning text-dark
+                                {% elif session.status == 'cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ session.status | capitalize }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No upcoming sessions scheduled.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="main-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0">Recent Feedback</h5>
+                    <a href="{{ url_for('tutors') }}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                {% if recent_reviews %}
+                    {% for review in recent_reviews %}
+                    <div class="py-2 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>
+                                {% if current_user.role == 'tutor' %}
+                                    {{ review.student.username }}
+                                {% else %}
+                                    {{ review.tutor.username }}
+                                {% endif %}
+                            </strong>
+                            <span class="text-warning">
+                                {{ '★' * review.rating | int }}{{ '☆' * (5 - review.rating | int) }}
+                            </span>
+                        </div>
+                        {% if review.comment %}
+                            <p class="mb-0 text-muted small">{{ review.comment }}</p>
+                        {% endif %}
+                        <small class="text-muted">{{ review.created_at.strftime('%d %b %Y') }}</small>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No feedback yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
