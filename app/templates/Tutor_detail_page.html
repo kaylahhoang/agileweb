@@ -42,6 +42,7 @@
                     method="POST"
                     enctype="multipart/form-data"
                 >
+                    {{ csrf_form.hidden_tag() }}
                     <!-- Photo upload -->
                     <h5>Profile Photo</h5>
                     <input
@@ -216,6 +217,7 @@
             </div>
             <div class="modal-body">
                 <form id="reviewForm" action="{{ url_for('submit_review', tutor_id=tutor.id) }}" method="POST">
+                    {{ csrf_form.hidden_tag() }}
                     <div class="mb-3">
                         <label for="reviewName" class="form-label">Your Name</label>
                         <input type="text" class="form-control" id="reviewName"

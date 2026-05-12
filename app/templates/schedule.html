@@ -90,6 +90,7 @@
 
     {% if current_user.role == 'tutor' %}
     <form method="POST" action="{{ url_for('create_session') }}" class="mb-4">
+        {{ csrf_form.hidden_tag() }}
         <div class="row g-2">
             <div class="col-md-3">
                 <input type="text" name="subject" class="form-control" placeholder="Subject" required>
@@ -163,12 +164,14 @@
                                         {% if current_user.role == 'student' %}
                                             {% if session.id in joined_session_ids %}
                                                 <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                                    {{ csrf_form.hidden_tag() }}
                                                     <button type="submit" class="btn btn-sm btn-outline-danger">
                                                         Leave
                                                     </button>
                                                 </form>
                                             {% elif session.bookings|length < session.max_students %}
                                                 <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                                    {{ csrf_form.hidden_tag() }}
                                                     <button type="submit" class="btn btn-sm btn-primary">
                                                         Join
                                                     </button>
@@ -178,6 +181,7 @@
                                             {% endif %}
                                         {% else %}
                                             <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                                {{ csrf_form.hidden_tag() }}
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
                                                     Cancel
                                                 </button>
@@ -220,10 +224,12 @@
                         {% if current_user.role == 'student' %}
                             {% if session.id in joined_session_ids %}
                                 <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                    {{ csrf_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
                                 </form>
                             {% elif session.bookings|length < session.max_students %}
                                 <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                    {{ csrf_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-sm btn-primary">Join</button>
                                 </form>
                             {% else %}
@@ -231,6 +237,7 @@
                             {% endif %}
                         {% else %}
                             <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                {{ csrf_form.hidden_tag() }}
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
                             </form>
                         {% endif %}
@@ -261,10 +268,12 @@
                         {% if current_user.role == 'student' %}
                             {% if session.id in joined_session_ids %}
                                 <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                    {{ csrf_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
                                 </form>
                             {% elif session.bookings|length < session.max_students %}
                                 <form method="POST" action="{{ url_for('join_session', session_id=session.id) }}">
+                                    {{ csrf_form.hidden_tag() }}
                                     <button type="submit" class="btn btn-sm btn-primary">Join</button>
                                 </form>
                             {% else %}
@@ -272,6 +281,7 @@
                             {% endif %}
                         {% else %}
                             <form method="POST" action="{{ url_for('cancel_booking', session_id=session.id) }}">
+                                {{ csrf_form.hidden_tag() }}
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
                             </form>
                         {% endif %}

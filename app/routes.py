@@ -5,9 +5,9 @@ from flask import jsonify, render_template, redirect, url_for, flash, request, a
 from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, login_required, current_user
-from app import app, db, mail
+from app import app, db, mail, csrf
 from app.models import User, TutorProfile, Session, Booking, Review, Conversation, ConversationParticipant, Message
-from app.forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
+from app.forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, CSRFOnlyForm
 import calendar
 from flask_mail import Message as MailMessage
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
@@ -199,7 +199,7 @@ def tutors():
     my_profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first() if current_user.role == 'tutor' else None
     avg_rows = db.session.query(Review.tutor_id, db.func.avg(Review.rating).label('avg')).group_by(Review.tutor_id).all()
     avg_ratings = {row.tutor_id: round(float(row.avg), 1) for row in avg_rows}
-    return render_template('tutors.html', profiles=profiles, my_profile=my_profile, avg_ratings=avg_ratings)
+    return render_template('tutors.html', profiles=profiles, my_profile=my_profile, avg_ratings=avg_ratings, csrf_form=CSRFOnlyForm())
 
 
 @app.route('/tutor/list', methods=['POST'])
@@ -288,7 +288,8 @@ def tutor_detail(tutor_id):
                            reviews=reviews,
                            avg_rating=avg_rating,
                            subjects=subjects,
-                           availability_data=availability_data)
+                           availability_data=availability_data,
+                           csrf_form=CSRFOnlyForm())
 
 @app.route('/tutor/<int:tutor_id>/review', methods=['POST'])
 @login_required
@@ -414,6 +415,7 @@ def schedule():
 
     return render_template(
         'schedule.html',
+        csrf_form=CSRFOnlyForm(),
         sessions=sessions,
         sessions_by_day=sessions_by_day,
         calendar_weeks=calendar_weeks,
@@ -593,6 +595,7 @@ def cancel_booking(session_id):
 
 
 @app.route('/conversations', methods=['POST'])
+@csrf.exempt
 @login_required
 def create_conversations():
     data = request.get_json()
@@ -644,6 +647,7 @@ def get_messages(conversation_id):
     ]), 200
 
 @app.route('/conversations/<int:conversation_id>/messages', methods=['POST'])
+@csrf.exempt
 @login_required
 def api_send_message(conversation_id):
     data = request.get_json()
@@ -660,6 +664,7 @@ def api_send_message(conversation_id):
 
 
 @app.route('/message/<int:message_id>', methods=['PATCH'])
+@csrf.exempt
 @login_required
 def mark_as_read(message_id):
     message = Message.query.get_or_404(message_id)
@@ -714,7 +719,8 @@ def inbox():
                            active_user_id=active_user_id,
                            active_conv_id=active_conv_id,
                            all_users=all_users,
-                           now=datetime.now(timezone.utc)
+                           now=datetime.now(timezone.utc),
+                           csrf_form=CSRFOnlyForm()
                            )
 
 
@@ -765,7 +771,7 @@ def feedback():
             }
             for s in sessions
         ]
-        return render_template('feedback_student.html', sessions_data=sessions_data)
+        return render_template('feedback_student.html', sessions_data=sessions_data, csrf_form=CSRFOnlyForm())
 
     else:  # student
         bookings = (Booking.query
@@ -773,4 +779,4 @@ def feedback():
                     .join(Session)
                     .filter(Session.status == 'completed')
                     .order_by(Session.datetime.desc()).all())
-        return render_template('feedback_student.html', bookings=bookings)
+        return render_template('feedback_student.html', bookings=bookings, csrf_form=CSRFOnlyForm())

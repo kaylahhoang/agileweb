@@ -64,6 +64,7 @@
         </div>
 
         <form class="chat-input-area" method="POST" action="{{ url_for('send_message', user_id=other_user.id) }}">
+            {{ csrf_form.hidden_tag() }}
             <input type="text" name="body" placeholder="Type a message…" required autocomplete="off" autofocus>
             <button type="submit" class="btn btn-primary px-4">Send</button>
         </form>

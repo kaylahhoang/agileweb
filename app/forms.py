@@ -3,6 +3,10 @@ from wtforms import StringField, PasswordField, SubmitField, SelectField, EmailF
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 
 
+class CSRFOnlyForm(FlaskForm):
+    pass
+
+
 class ForgotPasswordForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Reset Password')

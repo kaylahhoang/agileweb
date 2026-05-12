@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_mail import Mail
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__, static_folder='../css', static_url_path='/css')
 
@@ -24,6 +25,7 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 migrate = Migrate(app, db)
 mail = Mail(app)
+csrf = CSRFProtect(app)
 
 # imported at the bottom to avoid circular imports
 from app import models, routes  # noqa: F401
