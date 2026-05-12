@@ -15,19 +15,42 @@ from datetime import datetime, timedelta
 
 class SeleniumTestCase(unittest.TestCase):
 
+    TEST_STUDENT = "selenium_student"
+    TEST_TUTOR   = "selenium_tutor"
+
+    def _cleanup_test_data(self):
+        """Remove any data belonging to the selenium test accounts."""
+        for username in (self.TEST_STUDENT, self.TEST_TUTOR):
+            user = User.query.filter_by(username=username).first()
+            if not user:
+                continue
+            # bookings the student made
+            Booking.query.filter_by(student_id=user.id).delete()
+            # sessions (and their bookings) the tutor created
+            for s in Session.query.filter_by(tutor_id=user.id).all():
+                Booking.query.filter_by(session_id=s.id).delete()
+            Session.query.filter_by(tutor_id=user.id).delete()
+            # conversations
+            for cp in ConversationParticipant.query.filter_by(user_id=user.id).all():
+                Message.query.filter_by(conversation_id=cp.conversation_id).delete()
+                ConversationParticipant.query.filter_by(conversation_id=cp.conversation_id).delete()
+                Conversation.query.filter_by(id=cp.conversation_id).delete()
+            TutorProfile.query.filter_by(tutor_id=user.id).delete()
+            db.session.delete(user)
+        db.session.commit()
+
     def setUp(self):
         app.config['TESTING'] = True
         app.config["WTF_CSRF_ENABLED"] = False
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test_selenium.db"
+        # Use the real app.db — do NOT drop all tables, only manage test accounts
 
         with app.app_context():
-            db.drop_all()
-            db.create_all()
+            self._cleanup_test_data()  # remove leftovers from any previous run
 
-            student = User(username="kennice", email="kenniceleong@example.com", role="student")
+            student = User(username=self.TEST_STUDENT, email="selenium_student@test.com", role="student")
             student.set_password("password123")
 
-            tutor = User(username="kaylah", email="kaylahhoang@example.com", role="tutor")
+            tutor = User(username=self.TEST_TUTOR, email="selenium_tutor@test.com", role="tutor")
             tutor.set_password("password123")
 
             db.session.add_all([student, tutor])
