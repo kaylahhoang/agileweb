@@ -760,7 +760,8 @@ def dashboard():
     else:
         upcoming_sessions = (
             Session.query
-            .filter_by(student_id=current_user.id)
+            .join(Booking, Booking.session_id == Session.id)
+            .filter(Booking.student_id == current_user.id)
             .filter(Session.datetime > now)
             .filter(Session.status.in_(['scheduled', 'confirmed', 'pending']))
             .order_by(Session.datetime)
