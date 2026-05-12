@@ -55,6 +55,7 @@ def inject_profile_data():
     if not current_user.is_authenticated:
         return {}
     now = datetime.utcnow()
+    unread = _unread_count(current_user.id)
     if current_user.role == 'tutor':
         profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
         sessions_run = Session.query.filter_by(tutor_id=current_user.id, status='completed').count()
@@ -63,7 +64,7 @@ def inject_profile_data():
                     .filter(Session.datetime > now, Session.status == 'scheduled')
                     .order_by(Session.datetime)
                     .limit(3).all())
-        return dict(tutor_profile=profile, sessions_run=sessions_run, upcoming_sessions=upcoming)
+        return dict(tutor_profile=profile, sessions_run=sessions_run, upcoming_sessions=upcoming, unread_count=unread)
     else:
         student_bookings = Booking.query.filter_by(student_id=current_user.id).all()
         student_session_ids = [booking.session_id for booking in student_bookings]
@@ -96,11 +97,10 @@ def inject_profile_data():
             .limit(3)
             .all()
         )
-        return dict(
-            sessions_attended=sessions_attended,
-            recent_feedback_sessions=recent_feedback_sessions,
-            upcoming_sessions=upcoming
-        )
+        return dict(sessions_attended=sessions_attended,
+                    recent_feedback_sessions=recent_feedback_sessions,
+                    upcoming_sessions=upcoming, unread_count=unread)
+        
 
 
 
@@ -189,7 +189,7 @@ def reset_password(token):
         flash('Your password has been reset. Please log in.', 'success')
         return redirect(url_for('login'))
     
-    return render_template('resetpassword.html', form=form, token=token)
+    return render_template('reset_password.html', form=form, token=token)
     
 
 @app.route('/tutors')
@@ -463,62 +463,11 @@ def create_session():
 
     session_datetime = datetime.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
 
-    duration = int(duration)
-    new_start = session_datetime
-    new_end = new_start + timedelta(minutes=duration)
-
-    # Check tutor availability
-    profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
-
-    if not profile or not profile.availability:
-        flash('Please set your availability before creating sessions.', 'error')
-        return redirect(url_for('schedule'))
-
-    try:
-        availability = json.loads(profile.availability)
-    except (json.JSONDecodeError, TypeError):
-        availability = {}
-
-    day_name = new_start.strftime('%A').lower()
-    day_availability = availability.get(day_name)
-
-    if not day_availability:
-        flash('You are not available on this day.', 'error')
-        return redirect(url_for('schedule'))
-
-    avail_start = datetime.strptime(
-        f'{date} {day_availability["start"]}',
-        '%Y-%m-%d %H:%M'
-    )
-
-    avail_end = datetime.strptime(
-        f'{date} {day_availability["end"]}',
-        '%Y-%m-%d %H:%M'
-    )
-
-    if new_start < avail_start or new_end > avail_end:
-        flash('Session must be within your available hours.', 'error')
-        return redirect(url_for('schedule'))
-
-    # Check overlapping sessions
-    existing_sessions = Session.query.filter_by(
-        tutor_id=current_user.id,
-        status='scheduled'
-    ).all()
-
-    for existing in existing_sessions:
-        existing_start = existing.datetime
-        existing_end = existing_start + timedelta(minutes=existing.duration)
-
-        if new_start < existing_end and new_end > existing_start:
-            flash('This session overlaps with another session you already created.', 'error')
-            return redirect(url_for('schedule'))
-
     new_session = Session(
         tutor_id=current_user.id,
         subject=subject,
         datetime=session_datetime,
-        duration=duration,
+        duration=int(duration),
         location=location,
         max_students=int(max_students),
         status='scheduled'
@@ -811,11 +760,23 @@ def dashboard():
     else:
         upcoming_sessions = (
             Session.query
-            .filter_by(student_id=current_user.id)
+            .join(Booking, Booking.session_id == Session.id)
+            .filter(Booking.student_id == current_user.id)
             .filter(Session.datetime > now)
             .filter(Session.status.in_(['scheduled', 'confirmed', 'pending']))
             .order_by(Session.datetime)
             .limit(5)
+            .all()
+        )
+        recent_reviews = None
+        raw_avg = None
+        recent_feedback = (
+            Booking.query
+            .filter_by(student_id=current_user.id)
+            .join(Session)
+            .filter(Booking.tutor_feedback.isnot(None))
+            .order_by(Session.datetime.desc())
+            .limit(3)
             .all()
         )
         recent_reviews = (
@@ -840,4 +801,5 @@ def dashboard():
         recent_reviews=recent_reviews,
         avg_rating=avg_rating,
         unread_count=unread_count,
+        recent_feedback=recent_feedback if current_user.role == 'student' else None,
     )
