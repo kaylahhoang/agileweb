@@ -115,7 +115,7 @@ def login():
         user = User.query.filter_by(username=login_form.username.data).first()
         if user and user.check_password(login_form.password.data):
             login_user(user)
-            return redirect(url_for('feedback'))  # redirect to dashboard
+            return redirect(url_for('dashboard'))  # redirect to dashboard
         flash('Invalid username or password', 'login_error')
 
     return render_template('login.html', login_form=login_form, register_form=register_form)
@@ -729,3 +729,64 @@ def feedback():
                     .filter(Session.status == 'completed')
                     .order_by(Session.datetime.desc()).all())
         return render_template('feedback_student.html', bookings=bookings, csrf_form=CSRFOnlyForm())
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    now = datetime.now(timezone.utc)
+
+    if current_user.role == 'tutor':
+        upcoming_sessions = (
+            Session.query
+            .filter_by(tutor_id=current_user.id)
+            .filter(Session.datetime > now)
+            .filter(Session.status.in_(['scheduled', 'confirmed', 'pending']))
+            .order_by(Session.datetime)
+            .limit(5)
+            .all()
+        )
+        recent_reviews = (
+            Review.query
+            .filter_by(tutor_id=current_user.id)
+            .order_by(Review.created_at.desc())
+            .limit(3)
+            .all()
+        )
+        raw_avg = (
+            db.session.query(db.func.avg(Review.rating))
+            .filter_by(tutor_id=current_user.id)
+            .scalar()
+        )
+    else:
+        upcoming_sessions = (
+            Session.query
+            .filter_by(student_id=current_user.id)
+            .filter(Session.datetime > now)
+            .filter(Session.status.in_(['scheduled', 'confirmed', 'pending']))
+            .order_by(Session.datetime)
+            .limit(5)
+            .all()
+        )
+        recent_reviews = (
+            Review.query
+            .filter_by(student_id=current_user.id)
+            .order_by(Review.created_at.desc())
+            .limit(3)
+            .all()
+        )
+        raw_avg = (
+            db.session.query(db.func.avg(Review.rating))
+            .filter_by(student_id=current_user.id)
+            .scalar()
+        )
+
+    avg_rating = round(float(raw_avg), 1) if raw_avg is not None else None
+    unread_count = 0
+
+    return render_template(
+        'dashboard.html',
+        upcoming_sessions=upcoming_sessions,
+        recent_reviews=recent_reviews,
+        avg_rating=avg_rating,
+        unread_count=unread_count,
+    )
