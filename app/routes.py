@@ -768,6 +768,17 @@ def dashboard():
             .limit(5)
             .all()
         )
+        recent_reviews = None
+        raw_avg = None
+        recent_feedback = (
+            Booking.query
+            .filter_by(student_id=current_user.id)
+            .join(Session)
+            .filter(Booking.tutor_feedback.isnot(None))
+            .order_by(Session.datetime.desc())
+            .limit(3)
+            .all()
+        )
         recent_reviews = (
             Review.query
             .filter_by(student_id=current_user.id)
@@ -790,4 +801,5 @@ def dashboard():
         recent_reviews=recent_reviews,
         avg_rating=avg_rating,
         unread_count=unread_count,
+        recent_feedback=recent_feedback if current_user.role == 'student' else None,
     )
