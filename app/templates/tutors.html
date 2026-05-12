@@ -7,6 +7,7 @@
 {% if current_user.role == 'tutor' and not my_profile %}
 <div class="mb-4">
     <form action="{{ url_for('list_tutor') }}" method="POST" style="display:inline">
+        {{ csrf_form.hidden_tag() }}
         <button type="submit" class="btn btn-primary">+ List Yourself as a Tutor</button>
     </form>
 </div>
@@ -50,6 +51,7 @@
                 Edit Profile
             </a>
             <form action="{{ url_for('unlist_tutor') }}" method="POST" style="display:inline">
+                {{ csrf_form.hidden_tag() }}
                 <button
                     type="submit"
                     class="btn btn-danger"
