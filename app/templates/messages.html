@@ -88,20 +88,77 @@
                 <h5 class="modal-title" id="composeModalLabel">New Message</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="GET" action="{{ url_for('inbox') }}">
+            <form method="GET" action="{{ url_for('inbox') }}" id="composeForm">
                 <div class="modal-body">
                     <label class="form-label">Send to</label>
-                    <select name="user_id" class="form-select" required>
-                        <option value="" disabled selected>Select a user…</option>
-                        {% for u in all_users %}
-                        <option value="{{ u.id }}">{{ u.username }} ({{ u.role }})</option>
-                        {% endfor %}
-                    </select>
+                    <div style="position:relative;">
+                        <input type="text" id="userSearch" class="form-control" placeholder="Search users…" autocomplete="off">
+                        <input type="hidden" name="user_id" id="selectedUserId">
+                        <ul id="userSearchResults" class="list-group" style="position:absolute;z-index:1000;width:100%;display:none;max-height:180px;overflow-y:auto;"></ul>
+                    </div>
+                    <small id="selectedUserLabel" class="text-muted mt-1 d-block"></small>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary w-100">Start Conversation</button>
+                    <button type="submit" id="startConvoBtn" class="btn btn-primary w-100" disabled>Start Conversation</button>
                 </div>
             </form>
+
+            <script type="application/json" id="allUsersData">
+            [{% for u in all_users %}{"id": {{ u.id }}, "label": {{ (u.username ~ " (" ~ u.role ~ ")") | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]
+            </script>
+
+            <script>
+            (function () {
+                const users = JSON.parse(document.getElementById("allUsersData").textContent);
+
+                const searchInput = document.getElementById("userSearch");
+                const results = document.getElementById("userSearchResults");
+                const hiddenInput = document.getElementById("selectedUserId");
+                const label = document.getElementById("selectedUserLabel");
+                const submitBtn = document.getElementById("startConvoBtn");
+
+                searchInput.addEventListener("input", function () {
+                    const q = this.value.trim().toLowerCase();
+                    hiddenInput.value = "";
+                    label.textContent = "";
+                    submitBtn.disabled = true;
+                    results.innerHTML = "";
+
+                    if (!q) { results.style.display = "none"; return; }
+
+                    const matches = users.filter(u => u.label.toLowerCase().includes(q));
+                    if (!matches.length) { results.style.display = "none"; return; }
+
+                    matches.forEach(u => {
+                        const li = document.createElement("li");
+                        li.className = "list-group-item list-group-item-action";
+                        li.style.cursor = "pointer";
+                        li.textContent = u.label;
+                        li.addEventListener("click", function () {
+                            hiddenInput.value = u.id;
+                            searchInput.value = u.label;
+                            label.textContent = "Selected: " + u.label;
+                            submitBtn.disabled = false;
+                            results.style.display = "none";
+                        });
+                        results.appendChild(li);
+                    });
+                    results.style.display = "block";
+                });
+
+                document.addEventListener("click", function (e) {
+                    if (!e.target.closest("#composeForm")) results.style.display = "none";
+                });
+
+                document.getElementById("composeModal").addEventListener("hidden.bs.modal", function () {
+                    searchInput.value = "";
+                    hiddenInput.value = "";
+                    label.textContent = "";
+                    submitBtn.disabled = true;
+                    results.style.display = "none";
+                });
+            })();
+            </script>
         </div>
     </div>
 </div>
