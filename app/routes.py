@@ -185,7 +185,65 @@ def forgot_password():
             token = s.dumps(user.email, salt='password-reset-salt')
             reset_link = url_for('reset_password', token=token, _external=True)
             msg = MailMessage('Password Reset Request', recipients=[user.email])
-            msg.body = f'Click the link to reset your password: {reset_link}\n\nThis link will expire in 30 minutes.\nIf you did not request a password reset, please ignore this email.'
+            msg.body = (
+                f'Hi {user.username},\n\n'
+                f'We received a request to reset the password for your account.\n\n'
+                f'Reset your password here:\n{reset_link}\n\n'
+                f'This link will expire in 30 minutes.\n\n'
+                f'If you did not request a password reset, you can safely ignore this email.\n\n'
+                f'— The TutorConnect Team'
+            )
+            msg.html = f'''
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background-color:#f7f7f2;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f2;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#3e5c76;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:0.5px;">TutorConnect</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 40px 24px;">
+              <h2 style="margin:0 0 12px;color:#2c3e50;font-size:18px;">Reset your password</h2>
+              <p style="margin:0 0 16px;color:#555;font-size:15px;line-height:1.6;">
+                Hi <strong>{user.username}</strong>,
+              </p>
+              <p style="margin:0 0 28px;color:#555;font-size:15px;line-height:1.6;">
+                We received a request to reset the password for your account. Click the button below to choose a new password.
+              </p>
+              <!-- Button -->
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background-color:#748CAB;border-radius:6px;">
+                    <a href="{reset_link}" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;">Reset Password</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:28px 0 0;color:#888;font-size:13px;line-height:1.6;">
+                This link will expire in <strong>30 minutes</strong>. If you did not request a password reset, you can safely ignore this email — your password will not change.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f0f0eb;padding:20px 40px;text-align:center;border-top:1px solid #e0e0d8;">
+              <p style="margin:0;color:#aaa;font-size:12px;">
+                &copy; 2025 TutorConnect. This is an automated message, please do not reply.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>'''
 
             try:
                 mail.send(msg)
@@ -218,7 +276,7 @@ def reset_password(token):
         flash('Your password has been reset. Please log in.', 'success')
         return redirect(url_for('login'))
     
-    return render_template('reset_password.html', form=form, token=token)
+    return render_template('resetpassword.html', form=form, token=token)
     
 
 @app.route('/tutors')
