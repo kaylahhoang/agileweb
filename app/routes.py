@@ -16,10 +16,15 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
+    """only allows safe image extensions to prevent malicious file uploads"""
+
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def _unread_count(user_id):
+    """Joins through ConversationParticipant and counts the number of
+        messages that were sent by someone else but have not yet been read"""
+    
     return (Message.query
             .join(ConversationParticipant, Message.conversation_id == ConversationParticipant.conversation_id)
             .filter(ConversationParticipant.user_id == user_id)
@@ -28,7 +33,24 @@ def _unread_count(user_id):
             .count())
 
 
+def _auto_complete_past_sessions():
+    # Mark any scheduled session whose end time (datetime + duration) has passed as completed.
+    now = datetime.utcnow()
+    past = Session.query.filter(Session.status == 'scheduled').all()
+    changed = False
+    for s in past:
+        if s.datetime + timedelta(minutes=s.duration) < now:
+            s.status = 'completed'
+            changed = True
+    if changed:
+        db.session.commit()
+
+
 def _get_or_create_conversation(user1_id, user2_id):
+    """ Finds existing 1-to-1 conversation between two users using a subquery.
+        if no such conversation exists, a new one is created and both participants are added
+        flush() is used to get conv.id before committing so participants can reference it
+    """
     user2_conv_ids = (db.session.query(ConversationParticipant.conversation_id)
                       .filter_by(user_id=user2_id).subquery())
     conv = (Conversation.query
@@ -52,8 +74,13 @@ def uploaded_file(filename):
 
 @app.context_processor
 def inject_profile_data():
+    """injects role-specific profile and stats data into every
+        authenticated template (sidebar and header). Returns nothing for guests.  
+    """
+
     if not current_user.is_authenticated:
         return {}
+    _auto_complete_past_sessions()
     now = datetime.utcnow()
     unread = _unread_count(current_user.id)
     if current_user.role == 'tutor':
@@ -75,14 +102,16 @@ def inject_profile_data():
             .count()
         )
 
-        three_months_ago = now - timedelta(days=90)
+        one_month_ago = now - timedelta(days=30)
 
+        # Feedback is stored per-booking (Booking.tutor_feedback), not on the Session itself.
         recent_feedback_sessions = (
-            Session.query
-            .filter(Session.id.in_(student_session_ids))
+            Booking.query
+            .filter_by(student_id=current_user.id)
+            .join(Session)
             .filter(Session.status == 'completed')
-            .filter(Session.feedback.isnot(None))
-            .filter(Session.datetime >= three_months_ago)
+            .filter(Booking.tutor_feedback.isnot(None))
+            .filter(Session.datetime >= one_month_ago)
             .order_by(Session.datetime.desc())
             .limit(10)
             .all()
@@ -198,7 +227,7 @@ def tutors():
     profiles = TutorProfile.query.all()
     my_profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first() if current_user.role == 'tutor' else None
     avg_rows = db.session.query(Review.tutor_id, db.func.avg(Review.rating).label('avg')).group_by(Review.tutor_id).all()
-    avg_ratings = {row.tutor_id: round(float(row.avg), 1) for row in avg_rows}
+    avg_ratings = {row.tutor_id: round(float(row.avg), 1) for row in avg_rows} #calculates average rating per tutor into a single query and converts it into a dict keyed by tutor_id for O(1) lookup
     return render_template('tutors.html', profiles=profiles, my_profile=my_profile, avg_ratings=avg_ratings, csrf_form=CSRFOnlyForm())
 
 
@@ -468,7 +497,7 @@ def create_session():
     new_start = session_datetime
     new_end = new_start + timedelta(minutes=duration)
 
-    # Check tutor availability
+    # Parse the tutor's availability JSON and check the requested day is availabile. Also check if the session time falls within the available start/end window
     profile = TutorProfile.query.filter_by(tutor_id=current_user.id).first()
 
     if not profile or not profile.availability:
@@ -501,7 +530,7 @@ def create_session():
         flash('Session must be within your available hours.', 'error')
         return redirect(url_for('schedule'))
 
-    # Check overlapping sessions
+    # Prevent double-booking and rejects if the new session's time overlaps
     existing_sessions = Session.query.filter_by(
         tutor_id=current_user.id,
         status='scheduled'
@@ -745,6 +774,11 @@ def send_message(user_id):
 @app.route('/feedback', methods=['GET', 'POST'])
 @login_required
 def feedback():
+    """
+    Tutors can see a session picker and can write feedback for each student, students can 
+    see feedback already written for them, read-only 
+    """
+    _auto_complete_past_sessions()
     if current_user.role == 'tutor':
         sessions = (Session.query
                     .filter_by(tutor_id=current_user.id)

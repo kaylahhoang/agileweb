@@ -98,16 +98,16 @@
         <div class="profile-divider"></div>
 
         <div class="profile-section">
-            <h6 class="profile-section-label">Feedback — Last 3 Months</h6>
+            <h6 class="profile-section-label">Feedback — Last Month</h6>
             {% if recent_feedback_sessions %}
                 <div class="feedback-session-list">
                     {% for s in recent_feedback_sessions %}
                     <button class="feedback-session-item"
                             onclick="selectFeedback(this)"
-                            data-feedback="{{ s.feedback }}"
-                            data-meta="{{ s.subject or 'Session' }} — {{ s.datetime.strftime('%d %b %Y') }}">
-                        <span class="feedback-session-subject">{{ s.subject or 'Session' }}</span>
-                        <span class="feedback-session-date">{{ s.datetime.strftime('%d %b') }}</span>
+                            data-feedback="{{ s.tutor_feedback }}"
+                            data-meta="{{ s.session.subject or 'Session' }} — {{ s.session.datetime.strftime('%d %b %Y') }}">
+                        <span class="feedback-session-subject">{{ s.session.subject or 'Session' }}</span>
+                        <span class="feedback-session-date">{{ s.session.datetime.strftime('%d %b') }}</span>
                     </button>
                     {% endfor %}
                 </div>
@@ -181,11 +181,17 @@
     });
 
     function selectFeedback(button) {
-        document.querySelectorAll('.feedback-session-item').forEach(btn => btn.classList.remove('active')); 
+        const display = document.getElementById('feedbackDisplay');
+        if (button.classList.contains('active')) {
+            button.classList.remove('active');
+            display.style.display = 'none';
+            return;
+        }
+        document.querySelectorAll('.feedback-session-item').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
         document.getElementById('feedbackText').textContent = button.dataset.feedback;
         document.getElementById('feedbackMeta').textContent = button.dataset.meta;
-        document.getElementById('feedbackDisplay').style.display = 'block';
+        display.style.display = 'block';
     }
 </script>
 
