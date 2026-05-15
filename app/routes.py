@@ -33,6 +33,19 @@ def _unread_count(user_id):
             .count())
 
 
+def _auto_complete_past_sessions():
+    # Mark any scheduled session whose end time (datetime + duration) has passed as completed.
+    now = datetime.utcnow()
+    past = Session.query.filter(Session.status == 'scheduled').all()
+    changed = False
+    for s in past:
+        if s.datetime + timedelta(minutes=s.duration) < now:
+            s.status = 'completed'
+            changed = True
+    if changed:
+        db.session.commit()
+
+
 def _get_or_create_conversation(user1_id, user2_id):
     """ Finds existing 1-to-1 conversation between two users using a subquery.
         if no such conversation exists, a new one is created and both participants are added
@@ -67,6 +80,7 @@ def inject_profile_data():
 
     if not current_user.is_authenticated:
         return {}
+    _auto_complete_past_sessions()
     now = datetime.utcnow()
     unread = _unread_count(current_user.id)
     if current_user.role == 'tutor':
@@ -88,14 +102,16 @@ def inject_profile_data():
             .count()
         )
 
-        three_months_ago = now - timedelta(days=90)
+        one_month_ago = now - timedelta(days=30)
 
+        # Feedback is stored per-booking (Booking.tutor_feedback), not on the Session itself.
         recent_feedback_sessions = (
-            Session.query
-            .filter(Session.id.in_(student_session_ids))
+            Booking.query
+            .filter_by(student_id=current_user.id)
+            .join(Session)
             .filter(Session.status == 'completed')
-            .filter(Session.feedback.isnot(None))
-            .filter(Session.datetime >= three_months_ago)
+            .filter(Booking.tutor_feedback.isnot(None))
+            .filter(Session.datetime >= one_month_ago)
             .order_by(Session.datetime.desc())
             .limit(10)
             .all()
@@ -762,6 +778,7 @@ def feedback():
     Tutors can see a session picker and can write feedback for each student, students can 
     see feedback already written for them, read-only 
     """
+    _auto_complete_past_sessions()
     if current_user.role == 'tutor':
         sessions = (Session.query
                     .filter_by(tutor_id=current_user.id)
