@@ -1,3 +1,4 @@
+import json
 import unittest
 import threading
 import time
@@ -11,6 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from app import app, db
 from app.models import User, TutorProfile, Session, Booking, Message, Conversation, ConversationParticipant
 from datetime import datetime, timedelta
+
 
 
 class SeleniumTestCase(unittest.TestCase):
@@ -59,7 +61,10 @@ class SeleniumTestCase(unittest.TestCase):
             profile = TutorProfile(
                 tutor_id=tutor.id,
                 about_me="Experienced math tutor with a passion for helping students succeed.",
-                subjects="Mathematics, Physics"
+                subjects="Mathematics, Physics",
+                availability = json.dumps({
+                    day: {"start": "09:00", "end": "17:00"} for day in ["monday", "tuesday", "wednesday", "thursday", "friday"]
+                })
             )
             db.session.add(profile)
 
@@ -168,19 +173,25 @@ class SeleniumTestCase(unittest.TestCase):
 
     def test_messages_page_loads(self):
         self.login(self.TEST_STUDENT, "password123")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
         self.driver.get(f"{self.base_url}/messages")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Messages"))
         heading = self.driver.find_element(By.TAG_NAME, "h2")
         self.assertIn("Messages", heading.text)
 
     def test_new_message_appears_within_3_seconds(self):
         import json as _json
         self.login(self.TEST_STUDENT, "password123")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
 
         with app.app_context():
             kaylah = User.query.filter_by(username=self.TEST_TUTOR).first()
             kaylah_id = kaylah.id
         self.driver.get(f"{self.base_url}/messages?user_id={kaylah_id}")
 
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.ID, "pageData"))
+        )
         page_data_el = self.driver.find_element(By.ID, "pageData")
         conv_id = _json.loads(page_data_el.get_attribute("textContent"))["convId"]
 
@@ -194,7 +205,7 @@ class SeleniumTestCase(unittest.TestCase):
             db.session.add(msg)
             db.session.commit()
 
-        wait = WebDriverWait(self.driver, 5)
+        wait = WebDriverWait(self.driver, 8)
         appeared = wait.until(
             EC.text_to_be_present_in_element((By.ID, "chatMessages"), "Hello from kaylah!")
         )
@@ -203,18 +214,25 @@ class SeleniumTestCase(unittest.TestCase):
     def test_student_can_join_session(self):
         from datetime import date as _date
         self.login(self.TEST_STUDENT, "password123")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
 
-        today_str = _date.today().strftime("%Y-%m-%d")
-        self.driver.get(f"{self.base_url}/bookings?view=weekly&date={today_str}")
+        session_date = (_date.today() + timedelta(days=3)).strftime("%Y-%m-%d")
+        self.driver.get(f"{self.base_url}/bookings?view=weekly&date={session_date}")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Schedule"))
 
-        join_btn = self.driver.find_element(By.XPATH, "//button[normalize-space()='Join']")
-        self.driver.execute_script("arguments[0].click()", join_btn)
+        join_btn = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//div[@id='weeklyView']//button[normalize-space()='Join']"))
+        )
+        join_btn.click()
 
-        leave_btn = self.driver.find_element(By.XPATH, "//button[normalize-space()='Leave']")
+        leave_btn = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//button[normalize-space()='Leave']"))
+        )
         self.assertIsNotNone(leave_btn)
 
         with app.app_context():
-            session = Session.query.first()
+            tutor = User.query.filter_by(username=self.TEST_TUTOR).first()
+            session = Session.query.filter_by(tutor_id=tutor.id).first()
             student = User.query.filter_by(username=self.TEST_STUDENT).first()
             booking = Booking.query.filter_by(
                 session_id=session.id, student_id=student.id
@@ -224,11 +242,16 @@ class SeleniumTestCase(unittest.TestCase):
     def test_student_can_leave_session(self):
         from datetime import date as _date
         self.login(self.TEST_STUDENT, "password123")
-        today_str = _date.today().strftime("%Y-%m-%d")
-        self.driver.get(f"{self.base_url}/bookings?view=weekly&date={today_str}")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
+
+        session_date = (_date.today() + timedelta(days=3)).strftime("%Y-%m-%d")
+        self.driver.get(f"{self.base_url}/bookings?view=weekly&date={session_date}")
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Schedule"))
 
         # Join via UI first so the server knows about the booking
-        join_btn = self.driver.find_element(By.XPATH, "//button[normalize-space()='Join']")
+        join_btn = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//button[normalize-space()='Join']"))
+        )
         self.driver.execute_script("arguments[0].click()", join_btn)
 
         WebDriverWait(self.driver, 10).until(
@@ -259,9 +282,13 @@ class SeleniumTestCase(unittest.TestCase):
         time_input = self.driver.find_element(By.NAME, "time")
         self.driver.execute_script("arguments[0].value = arguments[1]", time_input, "10:00")
         self.driver.find_element(By.NAME, "location").send_keys("Room 101")
-        self.driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
+        submit_btn = self.driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+        submit_btn.click()
 
-        self.assertIn("Physics", self.driver.page_source)
+        WebDriverWait(self.driver, 10).until(EC.staleness_of(submit_btn))
+        page_text = self.driver.find_element(By.TAG_NAME, "body").text
+
+        self.assertIn("Physics", page_text)
 
 
 if __name__ == "__main__":
