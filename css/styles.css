@@ -1130,3 +1130,41 @@ body.login-body {
     transform: scale(1.15);
 }
 
+/* ── Auth pages (login, forgot password, reset password) header ── */
+:root { --header-h: 64px; }
+
+.login-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background-color: #3e5c76;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+}
+
+.login-header .brand {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1.5px;
+}
+
+.login-header .brand span {
+    color: #A3D2CA;
+}
+
+body.login-body {
+    padding-top: var(--header-h);
+}
+
+.wrapper {
+    height: calc(100vh - var(--header-h));
+}
+
+.screen {
+    height: calc(100vh - var(--header-h));
+}
+
