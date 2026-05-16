@@ -938,7 +938,7 @@ def dashboard():
         )
 
     avg_rating = round(float(raw_avg), 1) if raw_avg is not None else None
-    unread_count = 0
+    unread_count = _unread_count(current_user.id)
 
     return render_template(
         'dashboard.html',
