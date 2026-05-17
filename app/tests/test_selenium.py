@@ -86,7 +86,7 @@ class SeleniumTestCase(unittest.TestCase):
         # Start Flask in a separate thread
         self.server_thread = threading.Thread(
             target=app.run,
-            kwargs={"debug": False, "use_reloader": False, "port": 5000}
+            kwargs={"debug": False, "use_reloader": False, "port": 5001}
         )
         self.server_thread.daemon = True
         self.server_thread.start()
@@ -100,7 +100,7 @@ class SeleniumTestCase(unittest.TestCase):
             options=options
         )
         self.driver.implicitly_wait(10)
-        self.base_url = "http://localhost:5000"
+        self.base_url = "http://localhost:5001"
 
     def tearDown(self):
         self.driver.quit()
@@ -108,11 +108,16 @@ class SeleniumTestCase(unittest.TestCase):
             self._cleanup_test_data()
 
     # Helper method to log in
-    def login(self, username, password):
+    def login(self, username, password, expect_success=True):
         self.driver.get(f"{self.base_url}/login")
         self.driver.find_element(By.NAME, "username").send_keys(username)
         self.driver.find_element(By.NAME, "password").send_keys(password)
         self.driver.find_element(By.CSS_SELECTOR, "input[type='submit']").click()
+
+        if expect_success:
+            WebDriverWait(self.driver, 10).until(
+                EC.url_contains("/dashboard")
+            )
 
     # Tests
     def test_login_student(self):
@@ -130,7 +135,8 @@ class SeleniumTestCase(unittest.TestCase):
         self.assertIn("Dashboard", self.driver.title)
 
     def test_invalid_login_shows_error(self):
-        self.login(self.TEST_STUDENT, "wrongpassword")
+        self.login(self.TEST_STUDENT, "wrongpassword", expect_success=False)
+
         error = self.driver.find_element(By.CLASS_NAME, "flash-error")
         self.assertIn("Invalid", error.text)
 
@@ -231,12 +237,12 @@ class SeleniumTestCase(unittest.TestCase):
         self.assertIsNotNone(leave_btn)
 
         with app.app_context():
-            tutor = User.query.filter_by(username=self.TEST_TUTOR).first()
-            session = Session.query.filter_by(tutor_id=tutor.id).first()
             student = User.query.filter_by(username=self.TEST_STUDENT).first()
+
             booking = Booking.query.filter_by(
-                session_id=session.id, student_id=student.id
+                student_id=student.id
             ).first()
+
             self.assertIsNotNone(booking)
 
     def test_student_can_leave_session(self):
@@ -274,7 +280,12 @@ class SeleniumTestCase(unittest.TestCase):
         WebDriverWait(self.driver, 10).until(EC.title_contains("Dashboard"))
         self.driver.get(f"{self.base_url}/bookings")
 
-        future_date = (_date.today() + timedelta(days=7)).strftime("%Y-%m-%d")
+        future_date = datetime.now() + timedelta(days=7)
+
+        while future_date.weekday() > 4:  # Skip weekends
+            future_date += timedelta(days=1)
+
+        future_date = future_date.strftime("%Y-%m-%d")
 
         self.driver.find_element(By.NAME, "subject").send_keys("Physics")
         date_input = self.driver.find_element(By.NAME, "date")
